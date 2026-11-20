@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../src/worker/index";
 import type { Env } from "../src/worker/env";
 
@@ -104,52 +104,78 @@ class FakeDb {
   }
 }
 
-class FakeBucket {
-  objects = new Map<string, { bytes: Uint8Array }>();
+class MockStorage {
+  objects = new Map<string, Uint8Array>();
+  private originalFetch = globalThis.fetch;
 
-  async put(key: string, value: ArrayBuffer | Uint8Array) {
-    this.objects.set(key, {
-      bytes: value instanceof Uint8Array ? value : new Uint8Array(value),
-    });
-  }
+  install() {
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url =
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (!url.includes("mock.supabase.co/storage/v1/")) return this.originalFetch(input, init);
 
-  async get(key: string) {
-    const object = this.objects.get(key);
-    if (!object) return null;
-    return {
-      size: object.bytes.byteLength,
-      body: new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(object.bytes);
-          controller.close();
-        },
-      }),
+      const path = new URL(url).pathname;
+      const method = init?.method ?? (typeof input === "string" ? "GET" : input.method);
+
+      if (path.includes("/object/list/")) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { prefix?: string };
+        const prefix = body.prefix ?? "";
+        const names = [...this.objects.keys()]
+          .filter((key) => key.startsWith(prefix))
+          .map((key) => key.slice(prefix.length));
+        return new Response(JSON.stringify(names.map((name) => ({ name }))), { status: 200 });
+      }
+
+      const bucketPath = "/storage/v1/object/kelpo-files";
+      if (method === "DELETE" && path === bucketPath) {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { prefixes?: string[] };
+        for (const prefix of body.prefixes ?? []) {
+          for (const key of [...this.objects.keys()]) {
+            if (key.startsWith(prefix)) this.objects.delete(key);
+          }
+        }
+        return new Response("{}", { status: 200 });
+      }
+
+      const key = decodeURIComponent(path.slice(path.indexOf(`${bucketPath}/`) + bucketPath.length + 1));
+      if (method === "POST") {
+        const bytes = new Uint8Array(await new Response(init?.body as BodyInit).arrayBuffer());
+        this.objects.set(key, bytes);
+        return new Response("{}", { status: 200 });
+      }
+      const bytes = this.objects.get(key);
+      if (!bytes) return new Response("not found", { status: 404 });
+      return new Response(bytes, {
+        status: 200,
+        headers: { "content-length": String(bytes.byteLength) },
+      });
     };
   }
 
-  async list({ prefix }: { prefix?: string }) {
-    return {
-      objects: [...this.objects.keys()]
-        .filter((key) => key.startsWith(prefix ?? ""))
-        .map((key) => ({ key })),
-      truncated: false,
-      cursor: undefined,
-    };
-  }
-
-  async delete(key: string) {
-    this.objects.delete(key);
+  restore() {
+    globalThis.fetch = this.originalFetch;
   }
 }
+
+let storage: MockStorage;
+
+beforeEach(() => {
+  storage = new MockStorage();
+  storage.install();
+});
+
+afterEach(() => storage.restore());
 
 function makeEnv() {
   return {
     DB: new FakeDb(),
-    FILES: new FakeBucket(),
     APP_URL: "http://localhost:8787",
     PUBLIC_APP_URL: "http://localhost:5173",
     ALLOWED_ORIGIN: "http://localhost:5173,*.vercel.app",
     SESSION_SECRET: "test-secret",
+    SUPABASE_URL: "https://mock.supabase.co",
+    SUPABASE_SERVICE_KEY: "test-key",
+    STORAGE_BUCKET: "kelpo-files",
   } as unknown as Env;
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Env } from "../env";
 import { assertOwner, checkRate, getLink, HttpError, publicLink } from "../lib/access";
 import { hashPassword } from "../lib/password";
+import { putObject } from "../lib/storage";
 import { generateId, generateOwnerToken, generateSlug, sha256Hex } from "../lib/slug";
 import {
   assertFileAllowed,
@@ -105,13 +106,9 @@ app.post("/:slug/files", async (c) => {
   const r2Key = `${link.slug}/${id}-${safeFileName(file.name)}`;
   const thumbKey = thumbBytes ? `${link.slug}/${id}-thumb.webp` : null;
 
-  await c.env.FILES.put(r2Key, await file.arrayBuffer(), {
-    httpMetadata: { contentType: sniffed.contentType },
-  });
+  await putObject(c.env, r2Key, await file.arrayBuffer(), sniffed.contentType);
   if (thumbKey && thumbBytes) {
-    await c.env.FILES.put(thumbKey, thumbBytes, {
-      httpMetadata: { contentType: "image/webp" },
-    });
+    await putObject(c.env, thumbKey, thumbBytes, "image/webp");
   }
 
   await c.env.DB.prepare(

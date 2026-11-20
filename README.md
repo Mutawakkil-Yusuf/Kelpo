@@ -17,12 +17,16 @@ and expiry job stay on **Cloudflare**:
 | OG route `/p/:slug` | Vercel edge function | keeps one share URL and real chat-preview tags |
 | API + CORS | Cloudflare Worker | 100k requests/day free, no cold starts |
 | Metadata | Cloudflare D1 | 5M reads / 100k writes / 5 GB free, no egress charge |
-| Originals | Cloudflare R2 | 10 GB free, **zero egress** — critical for downloads |
+| Originals | Supabase Storage | 1 GB free, no card needed; R2 can replace it later when billing is available |
 | Expiry | Cron Trigger + immediate checks | exact deletion, cron can lag harmlessly |
 
 Auth uses tokens in headers and query strings, not cookies. `vercel.app` and
 `workers.dev` are different sites, so cookies would be third-party and unreliable.
 Token auth also means no same-site domain requirement.
+
+Supabase free projects pause after a week of inactivity and allow 1 GB storage /
+5 GB egress. That is enough while Kelpo is small; switch the storage module back to
+R2 for zero egress and more room once a card is on file.
 
 Decisions and sources: [`docs/DECISIONS.md`](docs/DECISIONS.md).
 System design and API surface: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -44,14 +48,11 @@ Scope and phases: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 **Cloudflare**
 
-1. `wrangler d1 create kelpo` → put the id in `wrangler.jsonc`
-2. `wrangler r2 bucket create kelpo-files`
-3. Set vars/secrets in `wrangler.jsonc` or with `wrangler secret put`:
-   - `APP_URL` — worker origin
-   - `PUBLIC_APP_URL` — Vercel app origin, e.g. `https://kelpo.vercel.app`
-   - `ALLOWED_ORIGIN` — Vercel origin plus `*.vercel.app` for previews
-   - `SESSION_SECRET` — `openssl rand -base64 32`
-4. `pnpm db:remote && pnpm deploy`
+1. The D1 database `kelpo` already exists and the schema is applied (`wrangler.jsonc`
+   holds its id). Recreate only if starting from scratch.
+2. The Supabase project `kelpo` and private bucket `kelpo-files` already exist.
+3. Set secrets with `wrangler secret put`: `SESSION_SECRET` and `SUPABASE_SERVICE_KEY`.
+4. `pnpm deploy`
 
 **Vercel**
 
@@ -80,7 +81,7 @@ api/p/[slug].ts        Vercel edge function: injects og: tags into the SPA shell
 docs/                  research, architecture, design, copy, roadmap
 migrations/            D1 schema
 src/worker/            Hono API, CORS, OG card, cron cleanup
-  lib/                 tokens, passwords, validation, zip, cleanup, OG card
+  lib/                 tokens, passwords, validation, zip, cleanup, storage, OG card
   routes/              create, link, file/og, report
 web/                   Vite + React SPA
   src/lib/             api client, formatting, thumbnails, token storage

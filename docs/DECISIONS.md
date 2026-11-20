@@ -62,6 +62,18 @@ smaller, easier to reason about, and makes the per-link OG injection explicit. I
 strongly prefer Next.js, the fallback is **Next.js on Vercel Hobby + R2** — same data
 layer, no architecture change to storage or DB.
 
+### Storage while billing is unavailable
+
+Cloudflare requires a payment method on file before R2 can be enabled, even on the
+free tier. Until a card is added, originals go to a free Supabase Storage bucket
+(1 GB storage, 5 GB egress, no card). D1 still holds metadata. The Worker talks to
+Supabase over its Storage REST API through `src/worker/lib/storage.ts`, so moving
+back to R2 later means replacing that one module.
+
+Alternatives checked: Tigris (5 GB, zero egress, no card) needs a new account;
+Vercel Blob (1 GB / 10 GB transfer) needs project creation rights the current token
+does not have; Firebase Storage and Backblaze B2 both need a payment method.
+
 ## Constraints discovered (design must respect these)
 
 1. **Workers Free = 10 ms CPU per invocation.** Don't buffer or re-compress files.

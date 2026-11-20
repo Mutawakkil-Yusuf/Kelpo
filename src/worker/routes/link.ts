@@ -11,6 +11,7 @@ import {
   sessionSecret,
 } from "../lib/access";
 import { signAccessToken, verifyPassword } from "../lib/password";
+import { getObject } from "../lib/storage";
 import { safeFileName } from "../lib/validate";
 import { createZipBuilder, zipHeaders } from "../lib/zip";
 import type { FileRow } from "../types";
@@ -71,7 +72,7 @@ app.get("/:slug/zip", async (c) => {
   const builder = createZipBuilder();
   let index = 0;
   for (const file of files.results) {
-    const object = await c.env.FILES.get(file.r2_key);
+    const object = await getObject(c.env, file.r2_key);
     if (!object) continue;
     index++;
     const name = `${String(index).padStart(2, "0")}-${safeFileName(file.name)}`;

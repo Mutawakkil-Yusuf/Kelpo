@@ -19,14 +19,14 @@ Client phone                                    Sender phone
 |  Worker (Hono)                                                        |
 |    /api/links             create, upload one file, finalize            |
 |    /api/links/:slug       open, unlock, ZIP                            |
-|    /api/files/:id         preview / original download from R2          |
+|    /api/files/:id         preview / original download from Supabase Storage          |
 |    /api/og/:slug          thumbnail for chat crawlers                 |
 |    /api/og-meta/:slug     public title/count/thumbnail id for Vercel   |
 |    scheduled()            delete expired objects and rows              |
 +-----------------------------------------------------------------------+
         |                          |
         v                          v
-   D1 (metadata)             R2 (originals, private)
+   D1 (metadata)             Supabase Storage (originals, private)
 ```
 
 The bucket is never public. Expiry and password checks happen on every request, so
@@ -51,7 +51,7 @@ CORS allows exact origins from `ALLOWED_ORIGIN` plus `*.vercel.app` preview URLs
 
 - `links` — slug, title, message, password salt/hash, owner token hash, expected file
   count, expires_at, status, view/report counters.
-- `files` — id, link FK, R2 key, optional thumbnail key, original name, sniffed MIME,
+- `files` — id, link FK, Supabase Storage key, optional thumbnail key, original name, sniffed MIME,
   size, image dimensions, sort order.
 - `rate_events` — IP hash + action + timestamp.
 - `reports` — link FK, reason, IP hash.
@@ -83,7 +83,7 @@ Sealed deliveries show a gate; unlock returns a token. The gallery loads preview
 originals are fetched on download or fullscreen.
 
 **Expiry.** Every request checks `expires_at` and refuses after it. Cron runs every 10
-minutes, deletes each expired link's R2 objects by prefix, then deletes the row (FK
+minutes, deletes each expired link's Supabase Storage objects by prefix, then deletes the row (FK
 cascade removes files and reports).
 
 ## Abuse controls

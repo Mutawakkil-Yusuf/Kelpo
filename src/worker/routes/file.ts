@@ -8,6 +8,7 @@ import {
   HttpError,
 } from "../lib/access";
 import { brandCardPng } from "../lib/og-image";
+import { getObject } from "../lib/storage";
 
 /** GET /api/files/:id — inline preview or original download. */
 export const fileRoutes = new Hono<{ Bindings: Env }>();
@@ -19,16 +20,18 @@ fileRoutes.get("/:id", async (c) => {
   await assertAccess(c, link);
 
   const preview = c.req.query("preview") === "1";
-  const object = await c.env.FILES.get(preview && file.thumb_key ? file.thumb_key : file.r2_key);
+  const isPreview = preview && Boolean(file.thumb_key);
+  const object = await getObject(c.env, isPreview ? file.thumb_key! : file.r2_key);
   if (!object) throw new HttpError(404, "File is no longer available");
 
   const filename = encodeURIComponent(file.name);
   const headers: Record<string, string> = {
     "X-Content-Type-Options": "nosniff",
-    "Content-Length": String(object.size),
   };
+  const size = object.size || file.size_bytes;
+  if (size) headers["Content-Length"] = String(size);
 
-  if (preview && file.thumb_key) {
+  if (isPreview) {
     headers["Content-Type"] = "image/webp";
     headers["Cache-Control"] = "public, max-age=300";
     headers["Content-Disposition"] = `inline; filename="preview.webp"`;
@@ -69,13 +72,12 @@ ogRoutes.get("/:slug", async (c) => {
       .first<{ r2_key: string; content_type: string }>();
     if (!file) return brand();
 
-    const object = await c.env.FILES.get(file.r2_key);
+    const object = await getObject(c.env, file.r2_key);
     if (!object) return brand();
     return new Response(object.body, {
       headers: {
         "Content-Type": file.content_type,
         "Cache-Control": "public, max-age=300",
-        "Content-Length": String(object.size),
       },
     });
   } catch {
