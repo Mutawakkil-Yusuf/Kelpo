@@ -1,0 +1,309 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f4f1ea;
+  --color-ink: #141414;
+  --color-signal: #ff4d00;
+  --color-muted: #6b665e;
+  --color-forest: #14382e;
+
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: light;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* Print-proof registration mark — used sparingly as a structural accent. */
+.reg-mark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-ink);
+  border-radius: 50%;
+  position: relative;
+}
+.reg-mark::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background: var(--color-ink);
+  border-radius: 50%;
+}
+
+/* The pressed seal: the one brand motif. */
+.seal {
+  width: 44px;
+  height: 44px;
+  background: var(--color-signal);
+  clip-path: polygon(0 0, 78% 0, 100% 22%, 100% 100%, 0 100%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8%;
+  padding: 22%;
+}
+.seal-sm {
+  width: 20px;
+  height: 20px;
+}
+
+.seal i {
+  display: block;
+  background: var(--color-paper);
+  border-radius: 50%;
+}
+
+/* ---- Fitted motion: mechanical, short, meaningful ---- */
+@keyframes seal-press {
+  0% { transform: scale(1.14); opacity: 0; }
+  60% { transform: scale(0.96); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes settle-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes frame-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rule-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.animate-seal {
+  animation: seal-press 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.settle-in {
+  animation: settle-in 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.frame-reveal {
+  animation: frame-in 260ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.rule-fill {
+  transform-origin: left;
+  animation: rule-fill 320ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Countdown ring: drains clockwise as the link's life runs out. */
+@property --drain {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@keyframes ring-drain {
+  from { --drain: 100%; }
+  to { --drain: 0%; }
+}
+.ring-drain {
+  --drain: 100%;
+  position: relative;
+  background: conic-gradient(
+    var(--color-signal) 0 var(--drain),
+    var(--color-ink) var(--drain) 100%
+  );
+  animation: ring-drain var(--drain-duration, 24s) linear forwards;
+}
+.ring-drain::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--color-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .ring-drain { --drain: 0%; }
+}
+
+/* ---- Controls ---- */
+.field {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--color-ink);
+  background: transparent;
+  padding: 0.5rem 0;
+  outline: none;
+  color: var(--color-ink);
+}
+.field::placeholder { color: color-mix(in srgb, var(--color-muted) 55%, transparent); }
+.field-compact { padding-block: 0.15rem; }
+.field:focus { border-bottom-color: var(--color-signal); }
+
+.primary-btn {
+  display: inline-block;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 1rem 1.5rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: background 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+.primary-btn:hover { background: var(--color-signal); }
+
+.text-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.stamp-btn {
+  border: 1px solid var(--color-ink);
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.stamp-btn.is-active {
+  border-color: var(--color-signal);
+  background: var(--color-signal);
+  color: var(--color-paper);
+}
+
+.delivery-tray {
+  border: 1px dashed var(--color-muted);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+}
+.delivery-tray.is-dragging { border-color: var(--color-signal); background: rgb(255 77 0 / 5%); }
+.packing-list { border-top: 1px solid var(--color-ink); padding-top: 0.75rem; }
+
+.progress-rule { height: 2px; background: rgb(20 20 20 / 15%); }
+.progress-rule span {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: var(--color-signal);
+  transition: width 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ---- Chat preview: the first impression in WhatsApp ---- */
+.chat-preview {
+  max-width: 24rem;
+  padding: 0.75rem;
+  background: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px rgb(20 20 20 / 8%);
+}
+.chat-contact { display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.6rem; }
+.chat-card {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  background: #fff;
+  border-left: 3px solid var(--color-signal);
+  padding: 0.75rem;
+}
+.chat-thumb { width: 64px; height: 64px; object-fit: cover; flex: none; }
+
+/* ---- Password gate ---- */
+.envelope {
+  position: relative;
+  border: 1px solid var(--color-ink);
+  padding: 2rem;
+}
+.envelope::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: -1px;
+  height: 42px;
+  background: linear-gradient(to bottom right, transparent 49%, var(--color-paper) 50%);
+  border-bottom: 1px solid rgb(20 20 20 / 15%);
+  pointer-events: none;
+}
+
+/* ---- Contact sheet ---- */
+.frame-button {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 0;
+  background: rgb(20 20 20 / 5%);
+  cursor: pointer;
+  overflow: hidden;
+}
+.frame-number {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: var(--color-paper);
+  padding: 0.1rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+.doc-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ---- Fullscreen viewer ---- */
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: rgb(20 20 20 / 97%);
+  color: var(--color-paper);
+}
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgb(244 241 234 / 18%);
+}
+.viewer-bar button { border: 0; background: none; color: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.viewer-stage { flex: 1; display: flex; align-items: center; justify-content: center; gap: 1.5rem; padding: 1rem; min-height: 0; }
+.viewer-image { max-height: 76vh; max-width: 100%; object-fit: contain; }
+.viewer-nav {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 1px solid rgb(244 241 234 / 45%);
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.viewer-count { padding: 0.75rem 1.25rem; text-align: center; font-family: var(--font-mono); font-size: 0.75rem; }
+.viewer-pdf { display: flex; flex-direction: column; align-items: center; }
+.viewer-pdf .primary-btn { background: var(--color-signal); }
+
+@media (max-width: 640px) {
+  .viewer-nav { position: absolute; top: 50%; transform: translateY(-50%); }
+  .viewer-nav:first-child { left: 0.75rem; }
+  .viewer-nav:last-child { right: 0.75rem; }
+  .viewer-stage { position: relative; }
+}

@@ -1,0 +1,84 @@
+import { Hono } from "hono";
+import type { Env } from "../env";
+import {
+  assertAccess,
+  assertLive,
+  getFile,
+  getLink,
+  HttpError,
+} from "../lib/access";
+import { brandCardPng } from "../lib/og-image";
+
+/** GET /api/files/:id — inline preview or original download. */
+export const fileRoutes = new Hono<{ Bindings: Env }>();
+
+fileRoutes.get("/:id", async (c) => {
+  const file = await getFile(c.env, c.req.param("id"));
+  const link = await getLink(c.env, file.link_slug);
+  await assertLive(link, c.env);
+  await assertAccess(c, link);
+
+  const preview = c.req.query("preview") === "1";
+  const object = await c.env.FILES.get(preview && file.thumb_key ? file.thumb_key : file.r2_key);
+  if (!object) throw new HttpError(404, "File is no longer available");
+
+  const filename = encodeURIComponent(file.name);
+  const headers: Record<string, string> = {
+    "X-Content-Type-Options": "nosniff",
+    "Content-Length": String(object.size),
+  };
+
+  if (preview && file.thumb_key) {
+    headers["Content-Type"] = "image/webp";
+    headers["Cache-Control"] = "public, max-age=300";
+    headers["Content-Disposition"] = `inline; filename="preview.webp"`;
+  } else {
+    headers["Content-Type"] = preview ? file.content_type : "application/octet-stream";
+    headers["Content-Disposition"] = `${preview ? "inline" : "attachment"}; filename*=UTF-8''${filename}`;
+    headers["Cache-Control"] = "no-store";
+  }
+
+  return new Response(object.body, { headers });
+});
+
+/** GET /api/og/:slug — public thumbnail for chat crawlers. */
+export const ogRoutes = new Hono<{ Bindings: Env }>();
+
+ogRoutes.get("/:slug", async (c) => {
+  const brand = () => {
+    const png = brandCardPng();
+    const buffer = new ArrayBuffer(png.length);
+    new Uint8Array(buffer).set(png);
+    return new Response(new Blob([buffer], { type: "image/png" }), {
+      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" },
+    });
+  };
+
+  try {
+    const link = await getLink(c.env, c.req.param("slug"));
+    if (link.status !== "active" || link.expires_at <= Date.now() || link.password_hash) {
+      return brand();
+    }
+
+    const file = await c.env.DB.prepare(
+      `SELECT * FROM files WHERE link_slug = ?
+         AND content_type IN ('image/jpeg', 'image/png', 'image/gif')
+       ORDER BY sort_order LIMIT 1`,
+    )
+      .bind(link.slug)
+      .first<{ r2_key: string; content_type: string }>();
+    if (!file) return brand();
+
+    const object = await c.env.FILES.get(file.r2_key);
+    if (!object) return brand();
+    return new Response(object.body, {
+      headers: {
+        "Content-Type": file.content_type,
+        "Cache-Control": "public, max-age=300",
+        "Content-Length": String(object.size),
+      },
+    });
+  } catch {
+    return brand();
+  }
+});
