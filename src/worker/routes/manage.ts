@@ -32,7 +32,7 @@ async function assertCanManage(c: AppContext, slug: string) {
   } catch {
     // fall through
   }
-  throw new HttpError(403, "Not your link");
+  throw new HttpError(403, "You don't have access to this link");
 }
 
 app.post("/:slug/revoke", async (c) => {
@@ -57,7 +57,7 @@ app.post("/:slug/extend", async (c) => {
 
 app.get("/:slug/brand", async (c) => {
   const link = await getLink(c.env, c.req.param("slug"));
-  if (link.status !== "active") throw new HttpError(404, "Link unavailable");
+  if (link.status !== "active") throw new HttpError(404, "This link is not available");
   return c.json({ accentColor: link.accent_color, logoUrl: link.logo_url });
 });
 

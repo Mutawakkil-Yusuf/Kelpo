@@ -36,8 +36,8 @@ export async function getLink(env: Env, slug: string): Promise<LinkRow> {
 }
 
 export async function assertLive(link: LinkRow, env: Env): Promise<void> {
-  if (link.status === "draft") throw new HttpError(404, "Link not ready");
-  if (link.status === "disabled") throw new HttpError(404, "Link unavailable");
+  if (link.status === "draft") throw new HttpError(404, "This link is not ready yet");
+  if (link.status === "disabled") throw new HttpError(404, "This link is not available");
   if (link.expires_at <= Date.now()) {
     await env.DB.prepare("UPDATE links SET status = 'expired' WHERE slug = ? AND status = 'active'")
       .bind(link.slug)
@@ -57,7 +57,7 @@ export async function assertAccess(c: AppContext, link: LinkRow): Promise<void> 
 export async function assertOwner(c: AppContext, link: LinkRow): Promise<void> {
   const token = c.req.header("X-Kelpo-Owner");
   if (!token || (await sha256Hex(token)) !== link.owner_token_hash) {
-    throw new HttpError(403, "Not your link");
+    throw new HttpError(403, "You don't have access to this link");
   }
 }
 

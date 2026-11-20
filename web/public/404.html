@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Link not found — Kelpo</title>
+    <meta name="theme-color" content="#f4f1ea" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f4f1ea;
+        color: #141414;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      main { max-width: 40rem; margin: 0 auto; padding: 5rem 1.5rem 3rem; }
+      header { display: flex; align-items: center; gap: 0.8rem; }
+      .seal {
+        width: 40px; height: 40px; background: #ff4d00;
+        clip-path: polygon(0 0, 78% 0, 100% 22%, 100% 100%, 0 100%);
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 9px;
+      }
+      .seal i { display: block; background: #f4f1ea; border-radius: 50%; }
+      .wordmark { font: 1.6rem Georgia, serif; }
+      h1 { font: 700 clamp(2.3rem, 8vw, 3.4rem)/1.05 Georgia, serif; margin: 4rem 0 0; letter-spacing: -1px; }
+      p { color: #6b665e; line-height: 1.6; margin: 1.2rem 0 0; }
+      .code { font: 0.75rem ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+      .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2.5rem; }
+      .primary, .secondary {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-height: 48px; padding: 0.8rem 1.4rem; text-decoration: none;
+        font: 1.1rem Georgia, serif;
+      }
+      .primary { background: #141414; color: #f4f1ea; }
+      .secondary { border: 1px solid #141414; color: #141414; font-size: 0.95rem; }
+      .primary:hover, .secondary:hover { border-color: #ff4d00; color: #ff4d00; }
+      .primary:hover { color: #f4f1ea; background: #ff4d00; }
+      footer { margin-top: 5rem; border-top: 1px solid rgb(20 20 20 / 15%); padding-top: 1rem; }
+      .credit { font: 0.7rem ui-monospace, monospace; color: #6b665e; line-height: 1.8; }
+      .credit a { display: inline-flex; align-items: center; min-height: 28px; color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="seal" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span class="wordmark">Kelpo</span>
+      </header>
+
+      <p class="code">404 · nothing at this address</p>
+      <h1>No link here.</h1>
+      <p>
+        The address may have a typo, or the link may have ended. Expired files are
+        deleted, and the sender gets a fresh link when they need one.
+      </p>
+
+      <div class="actions">
+        <a class="primary" href="/">Create a link</a>
+        <a class="secondary" href="/dashboard">Your links</a>
+      </div>
+
+      <footer>
+        <p class="credit">
+          By <strong>Mutawakkil</strong> ·
+          <a href="https://instagram.com/itsmutawakkil">ig: @itsmutawakkil</a> ·
+          <a href="https://x.com/itsmutawakkil">x: @itsmutawakkil</a> ·
+          <a href="https://github.com/Mutawakkil-Yusuf">github: Mutawakkil-Yusuf</a>
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

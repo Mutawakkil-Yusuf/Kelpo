@@ -37,7 +37,7 @@ const createSchema = z
 const app = new Hono<{ Bindings: Env }>();
 
 app.post("/", async (c) => {
-  await checkRate(c, "create", 20, 60 * 60 * 1000);
+  await checkRate(c, "create", 100, 60 * 60 * 1000);
   const input = createSchema.parse(await c.req.json());
 
   const slug = generateSlug();
@@ -73,7 +73,7 @@ app.post("/:slug/files", async (c) => {
   const link = await getLink(c.env, c.req.param("slug"));
   await assertOwner(c, link);
   if (link.status !== "draft") throw new HttpError(409, "Link is already sealed");
-  await checkRate(c, "upload", 80, 60 * 60 * 1000);
+  await checkRate(c, "upload", 300, 60 * 60 * 1000);
 
   const count = await c.env.DB.prepare(
     "SELECT COUNT(*) AS count FROM files WHERE link_slug = ?",

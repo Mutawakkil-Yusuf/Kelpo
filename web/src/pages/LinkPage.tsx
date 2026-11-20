@@ -172,7 +172,7 @@ export default function LinkPage({ slug }: { slug: string }) {
   if (phase === "loading") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-xl items-center px-5">
-        <Loading label="Opening delivery." detail="Bringing in the originals and your notes." />
+        <Loading label="Opening files." detail="Bringing in the originals and any notes." />
       </main>
     );
   }
@@ -214,7 +214,7 @@ export default function LinkPage({ slug }: { slug: string }) {
           <span className="seal" aria-hidden="true">
             {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
           </span>
-          <h1 className="mt-8 font-display text-4xl tracking-tight">This delivery is sealed.</h1>
+          <h1 className="mt-8 font-display text-4xl tracking-tight">This link needs a password.</h1>
           <p className="mt-3 text-sm text-muted">Enter the password to open it.</p>
           <input
             className="field mt-8 font-mono text-sm"
@@ -225,7 +225,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             onKeyDown={(event) => { if (event.key === "Enter") void unlock(); }}
           />
           {error && <p className="mt-3 text-sm text-signal">{error}</p>}
-          <button className="primary-btn mt-4 w-full" onClick={() => void unlock()}>Open delivery</button>
+          <button className="primary-btn mt-4 w-full" onClick={() => void unlock()}>Open link</button>
         </div>
         <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
           <Credits />
@@ -355,7 +355,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             </div>
           ) : (
             <button className="underline underline-offset-2" onClick={() => setReportOpen(true)}>
-              Report this delivery
+              Report this link
             </button>
           )}
         </div>

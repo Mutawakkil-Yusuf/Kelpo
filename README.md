@@ -3,113 +3,98 @@
 Send original files as one expiring link that works in WhatsApp, Instagram and email —
 no signup, no compression, no attachment caps.
 
-**Status: MVP built.** The create → share → preview → download flow is implemented and
-covered by tests. Deployment is the remaining step.
+- **App:** https://usekelpo.vercel.app
+- **API:** https://kelpo.mutawakkil280.workers.dev
 
-## Hosting
+## What it does
 
-The React app runs on **Vercel** (`.vercel.app` works fine). The API, database, files
-and expiry job stay on **Cloudflare**:
+A designer picks up to 15 originals, sets an expiry (24 hours, 7 or 30 days), and sends
+one link. The client opens it on a phone, previews the files, leaves notes if they want,
+and downloads the originals or a ZIP. The link dies on the chosen date and the files are
+deleted.
+
+The first screen says this in plain words: **pick files → set an expiry → send one link**,
+with a compressed-versus-original comparison underneath. No account, no app, no jargon.
+Recipients never see a signup prompt.
+
+## Hosted on free tiers
 
 | Concern | Where | Why |
 | --- | --- | --- |
-| React app | Vercel | `vercel.app` domain, preview deploys, simple Vite builds |
-| OG route `/p/:slug` | Vercel edge function | keeps one share URL and real chat-preview tags |
-| API + CORS | Cloudflare Worker | 100k requests/day free, no cold starts |
-| Metadata | Cloudflare D1 | 5M reads / 100k writes / 5 GB free, no egress charge |
-| Originals | Supabase Storage | 1 GB free, no card needed; R2 can replace it later when billing is available |
-| Expiry | Cron Trigger + immediate checks | exact deletion, cron can lag harmlessly |
+| React app and `/p/:slug` OG route | Vercel | `.vercel.app` works; preview deploys included |
+| API, CORS, OG images, expiry job | Cloudflare Worker | 100k requests/day free, no cold starts |
+| Metadata, accounts, notes, likes | Cloudflare D1 | 5M reads / 100k writes / 5 GB free |
+| Originals and previews | Supabase Storage | 1 GB free, no card needed today |
+| Cron | `*/10 * * * *` | deletes expired files and rows |
 
-Auth uses tokens in headers and query strings, not cookies. `vercel.app` and
-`workers.dev` are different sites, so cookies would be third-party and unreliable.
-Token auth also means no same-site domain requirement.
+R2 is deferred until a valid card is on Cloudflare. Swapping back means replacing
+`src/worker/lib/storage.ts`; nothing else changes.
 
-Supabase free projects pause after a week of inactivity and allow 1 GB storage /
-5 GB egress. That is enough while Kelpo is small; switch the storage module back to
-R2 for zero egress and more room once a card is on file.
+## The three product directions, first slice
 
-Decisions and sources: [`docs/DECISIONS.md`](docs/DECISIONS.md).
-System design and API surface: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-Visual language and fitted motion: [`docs/DESIGN.md`](docs/DESIGN.md).
-Product writing rules: [`docs/COPY.md`](docs/COPY.md).
-Scope and phases: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+**1. Sender accounts — optional.** Creating and sending never asks for an account. A
+sender who chooses *"Save links to an account"* signs up, and links made in that browser
+are claimed through the owner token. The dashboard shows history, view counts, *Stop
+link*, *Add 24 hours / 7 days / 30 days*, and a brand kit (accent colour and logo).
 
-## What works
+**2. Client feedback.** Anyone with the link can drop numbered pins on images with a
+note and their name. No account. Notes appear as markers on the image and in a list
+under the gallery.
 
-- Anonymous create: up to 15 JPG/PNG/WebP/GIF/PDF files, 25 MB each, with type sniffing
-- Light WebP previews made on the phone; originals stay byte-for-byte in R2
-- Title, client note, 24h / 7d / 30d expiry, optional password
-- Chat card preview before sending, with OG title/description/thumbnail
-- Client gallery, fullscreen viewer, per-file download, download all as ZIP
-- Password gate with signed tokens, expiry checks on every request, rate limits, reports
-- Cron purge of expired files and rows at expiry
-- Recipient prompt on first file open: "Sent with Kelpo" with a create-link action
-- One like per visitor with a short thank-you popup
-- Credit line on every screen: By Mutawakkil, with Instagram, X and GitHub links
+**3. Growth hooks.** Brand kit applied to every client page, a Studio waitlist, and
+a "Sent with Kelpo" sheet shown once when a recipient opens their first file. Likes
+are one per visitor and open a short thank-you card. No payment is taken yet.
 
-### Added from the three product directions
+## Product writing
 
-- **Sender accounts, optional.** Creating and sending never asks for an account. Only the
-  sender who chooses "Save this one to an account" is asked to sign up, and any link from
-  that browser is claimed at signup.
-- Dashboard with link history, view counts, revoke, extend (24h/7d/30d), brand kit
-  (accent colour and logo) and a Studio waitlist. No payment is taken yet.
-- Client notes: anyone with the link can drop numbered pins on images without signing in;
-  notes appear under the gallery and on the image.
-- Fitted loading states on every screen: a pressing seal, a sweeping rule and screen-specific
-  plain-language lines. Dashboard lists use skeletons.
+Every string is chosen to be concrete and easy. See [`docs/COPY.md`](docs/COPY.md)
+for the rules and banned filler words. Examples: *Drop files here*, *Link expires
+after*, *Download all originals (.zip)*, *Previews are light. Downloads are the real
+files.*, *This link has ended. The files were deleted.*
 
-**Recipient rule:** no signup wall, no account prompt, no auth on the client path.
+## Verification
 
-## Deploy
-
-**Cloudflare**
-
-1. The D1 database `kelpo` already exists and the schema is applied (`wrangler.jsonc`
-   holds its id). Recreate only if starting from scratch.
-2. The Supabase project `kelpo` and private bucket `kelpo-files` already exist.
-3. Set secrets with `wrangler secret put`: `SESSION_SECRET` and `SUPABASE_SERVICE_KEY`.
-4. `pnpm deploy`
-
-**Vercel**
-
-1. Import the repo; Vercel reads `vercel.json` (Vite, `web/dist`, `pnpm`)
-2. Add env vars:
-   - `VITE_API_URL` — worker origin (used by the browser)
-   - `KELPO_API_URL` — worker origin (used by the `/p/:slug` edge function)
-3. Deploy — `/p/:slug` is served by `api/p/[slug].ts`
+- `pnpm typecheck`, `pnpm build`, `pnpm test` (11 unit/route tests)
+- `pnpm test:e2e` (10 Playwright tests, mobile 320–390 px and desktop)
+- Audited at 320, 390, 768, 1280 and 1920 px: no horizontal overflow, no overlapping
+  text. Tap targets are at least 28 px.
+- Custom 404 at `/<unknown>`, matching the product with a clear way forward.
 
 ## Local development
 
-1. Node 22.12+ (see `.nvmrc`; Wrangler 4 requires it) and pnpm (`corepack enable`).
-2. `pnpm install`
-3. `pnpm db:local`
-4. `pnpm build`
-5. Two terminals: `pnpm dev:worker` (http://localhost:8787) and `pnpm dev:web` (http://localhost:5173).
-   Leave `VITE_API_URL` unset so Vite proxies `/api` to the Worker.
-6. Trigger cleanup locally: `curl "http://localhost:8787/cdn-cgi/local/scheduled"`
-
-Checks: `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e` (Playwright,
-mobile 390×844 and desktop; set `PLAYWRIGHT_BASE_URL` and `LINK_SLUG` to test another
-environment).
-
-## Layout
+Node 22.12+ (`.nvmrc`) and pnpm. Then:
 
 ```
-api/p/[slug].ts        Vercel edge function: injects og: tags into the SPA shell
-docs/                  research, architecture, design, copy, roadmap
-migrations/            D1 schema
-src/worker/            Hono API, CORS, OG card, cron cleanup
-  lib/                 tokens, passwords, validation, zip, cleanup, storage, OG card
-  routes/              create, link, file/og, report
-web/                   Vite + React SPA
-  src/lib/             api client, formatting, thumbnails, token storage
-tests/                 pure-logic and full route-flow tests
-vercel.json            Vercel build settings
-wrangler.jsonc         Worker, D1, R2, cron
+pnpm install
+pnpm db:local
+pnpm build
+pnpm dev:worker     # http://localhost:8787
+pnpm dev:web        # http://localhost:5173
 ```
 
-## Not in this build
+Leave `VITE_API_URL` unset locally so Vite proxies `/api` to the Worker. Copy
+`.env.example` for the production variable names. Never commit `.dev.vars` or secrets.
 
-Accounts, dashboards, link history, revoke/extend, opened notifications, resumable
-uploads, pinned feedback, custom domains, payments, native apps. See the roadmap.
+## Deploy
+
+Worker: `wrangler d1 migrations apply kelpo --remote`, set `SESSION_SECRET` and
+`SUPABASE_SERVICE_KEY` with `wrangler secret put`, then `pnpm deploy`.
+
+Vercel: import the repo. `vercel.json` sets Vite, `pnpm build` and `web/dist`. Env vars:
+`VITE_API_URL`, `KELPO_API_URL`, `VITE_SITE_URL`. `/p/:slug` rewrites to the edge
+function that injects the link's OG tags; `/dashboard` rewrites to the SPA shell.
+
+Deployment details and IDs: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+## More docs
+
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — free-tier research and why each service
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — data model, API and flows
+- [`docs/DESIGN.md`](docs/DESIGN.md) — visual language and fitted motion
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — what remains in phases 2–4
+
+## Credits
+
+By **Mutawakkil** · [Instagram @itsmutawakkil](https://instagram.com/itsmutawakkil) ·
+[X @itsmutawakkil](https://x.com/itsmutawakkil) ·
+[GitHub Mutawakkil-Yusuf](https://github.com/Mutawakkil-Yusuf)

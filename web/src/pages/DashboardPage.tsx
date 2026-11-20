@@ -78,7 +78,7 @@ export default function DashboardPage() {
   if (!loaded) {
     return (
       <main className="mx-auto min-h-dvh max-w-xl px-5 py-16">
-        <Loading label="Finding your links." detail="Gathering deliveries, views and expiry dates." />
+        <Loading label="Loading your links." detail="Getting views, expiry dates and notes." />
       </main>
     );
   }
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       <main className="mx-auto min-h-dvh max-w-xl px-5 py-10 sm:py-14">
         <header className="flex items-center justify-between border-b border-ink pb-4">
           <a className="font-display text-2xl" href="/">Kelpo</a>
-          <a className="text-btn" href="/">New delivery ↗</a>
+          <a className="text-btn" href="/">New link ↗</a>
         </header>
 
         <section className="mt-14">
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
           </span>
           <h1 className="mt-8 font-display text-4xl tracking-tight sm:text-5xl">
-            Keep your deliveries together.
+            Keep your links in one place.
           </h1>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
             An account is optional. Creating and sending a link never asks for one. Save an
@@ -159,7 +159,7 @@ export default function DashboardPage() {
       <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
         <span className="font-display text-2xl">Kelpo</span>
         <div className="flex items-center gap-5 font-mono text-xs text-muted">
-          <a className="underline underline-offset-2" href="/">New delivery ↗</a>
+          <a className="underline underline-offset-2" href="/">New link ↗</a>
           <button
             className="underline underline-offset-2"
             onClick={() => {
@@ -174,7 +174,7 @@ export default function DashboardPage() {
 
       <section className="mt-10 flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl tracking-tight sm:text-5xl">Your deliveries.</h1>
+          <h1 className="font-display text-4xl tracking-tight sm:text-5xl">Your links.</h1>
           <p className="mt-2 font-mono text-xs text-muted">{data.account.email} · {data.account.plan}</p>
         </div>
         <span className="font-mono text-xs text-muted">{data.links.length} links</span>
@@ -182,7 +182,7 @@ export default function DashboardPage() {
 
       <section className="mt-10">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">History</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-muted">Your links</span>
           <span className="h-px flex-1 bg-ink/15" />
         </div>
         {data.links.length === 0 ? (
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                     onClick={() => void act(() => api.revoke(link.slug))}
                     disabled={link.status === "disabled"}
                   >
-                    Revoke
+                    Stop link
                   </button>
                   {(["24h", "7d", "30d"] as const).map((expiry) => (
                     <button
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                       className="small-btn"
                       onClick={() => void act(() => api.extend(link.slug, expiry))}
                     >
-                      +{expiry}
+                      Add {expiry === "24h" ? "24 hours" : expiry === "7d" ? "7 days" : "30 days"}
                     </button>
                   ))}
                 </div>
@@ -230,7 +230,7 @@ export default function DashboardPage() {
 
       <section className="mt-14">
         <div className="flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Brand kit</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-muted">Your brand</span>
           <span className="h-px flex-1 bg-ink/15" />
         </div>
         <p className="mt-4 text-sm text-muted">
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                 onChange={(event) => setWaitlistEmail(event.target.value)}
               />
               <button className="small-btn" type="submit">
-                {waitlistDone ? "Added" : "Join the list"}
+                {waitlistDone ? "Added" : "Notify me"}
               </button>
             </form>
           </div>

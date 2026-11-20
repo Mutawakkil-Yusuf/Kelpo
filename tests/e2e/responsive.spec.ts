@@ -85,12 +85,12 @@ test("a sender can save links from an optional dashboard", async ({ page }) => {
   await page.getByRole("button", { name: "Seal & create link" }).click();
   await page.getByText("Ready to send.").waitFor({ timeout: 30_000 });
 
-  await page.getByRole("link", { name: /Save this one to an account/ }).click();
-  await page.getByText("Keep your deliveries together.").waitFor();
+  await page.getByRole("link", { name: /Save links to an account/ }).click();
+  await page.getByText("Keep your links in one place.").waitFor();
   await page.getByPlaceholder("you@studio.com").fill(`studio-${Date.now()}@example.com`);
   await page.locator("input[type=password]").fill("password123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.getByText("Your deliveries.").waitFor({ timeout: 20_000 });
+  await page.getByText("Your links.", { exact: true }).waitFor({ timeout: 20_000 });
   await expect(page.getByText("Saved delivery")).toBeVisible();
 });
 

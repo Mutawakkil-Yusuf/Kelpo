@@ -137,12 +137,12 @@ export default function CreatePage() {
     return (
       <main className="mx-auto min-h-dvh max-w-xl px-5 py-16">
         <Seal />
-        <h1 className="mt-8 font-display text-4xl tracking-tight">Sealing your delivery.</h1>
+        <h1 className="mt-8 font-display text-4xl tracking-tight">Preparing your link.</h1>
         <p className="mt-2 text-sm text-muted">Sending file {progress.index} of {files.length}. Keep this tab open.</p>
         <div className="progress-rule mt-10" style={{ "--fill": `${fraction * 100}%` } as CSSProperties}>
           <span />
         </div>
-        <p className="mt-3 font-mono text-xs text-muted">Originals first. Previews ride along.</p>
+        <p className="mt-3 font-mono text-xs text-muted">Uploading originals and making small previews.</p>
       </main>
     );
   }
@@ -251,7 +251,7 @@ export default function CreatePage() {
         </p>
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
           <button className="text-btn" onClick={reset}>Create another delivery</button>
-          <a className="text-btn" href="/dashboard">Save this one to an account — optional</a>
+          <a className="text-btn" href="/dashboard">Save links to an account — optional</a>
         </div>
         <footer className="mt-10 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
           <Credits />
@@ -284,6 +284,41 @@ export default function CreatePage() {
         </p>
       </section>
 
+      <section className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 border-y border-ink/15 py-4 sm:grid-cols-3" aria-label="How Kelpo works">
+        {[
+          ["01", "Pick your files", "Up to 15 originals."],
+          ["02", "Set an expiry", "24 hours, 7 or 30 days."],
+          ["03", "Send one link", "Works in any chat app."],
+        ].map(([number, title, detail]) => (
+          <div key={number} className="flex items-baseline gap-3">
+            <span className="font-mono text-xs text-signal">{number}</span>
+            <div>
+              <p className="text-sm font-medium">{title}</p>
+              <p className="font-mono text-[11px] text-muted">{detail}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-8" aria-label="Why Kelpo">
+        <div className="compare">
+          <div className="compare-item">
+            <div className="compare-visual is-compressed" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium">In a chat app</p>
+            <p className="font-mono text-[11px] text-muted">Compressed. Capped. Sometimes blocked.</p>
+          </div>
+          <div className="compare-item">
+            <div className="compare-visual is-original" aria-hidden="true">
+              <span className="seal seal-sm">
+                {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
+              </span>
+            </div>
+            <p className="mt-3 text-sm font-medium">With Kelpo</p>
+            <p className="font-mono text-[11px] text-muted">Originals. Previewed before download.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="mt-10">
         <div
           className={`delivery-tray ${dragging ? "is-dragging" : ""}`}
@@ -302,9 +337,9 @@ export default function CreatePage() {
           }}
         >
           <div className="reg-mark mx-auto" aria-hidden="true" />
-          <p className="mt-4 font-display text-xl">Drop your delivery here</p>
+          <p className="mt-4 font-display text-xl">Drop files here</p>
           <p className="mt-1 font-mono text-xs text-muted">
-            JPG · PNG · WebP · GIF · PDF — up to 15 files, 25 MB each
+            Or tap to choose · JPG, PNG, WebP, GIF, PDF · up to 15 files, 25 MB each
           </p>
           <input
             ref={inputRef}
@@ -364,7 +399,7 @@ export default function CreatePage() {
         </label>
 
         <fieldset>
-          <legend className="font-mono text-xs uppercase tracking-widest text-muted">This link lives for</legend>
+          <legend className="font-mono text-xs uppercase tracking-widest text-muted">Link expires after</legend>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {(["24h", "7d", "30d"] as Expiry[]).map((option) => (
               <button
@@ -390,7 +425,7 @@ export default function CreatePage() {
               checked={hasPassword}
               onChange={(event) => setHasPassword(event.target.checked)}
             />
-            Seal it with a password
+            Require a password
           </label>
           {hasPassword && (
             <input

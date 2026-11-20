@@ -161,7 +161,7 @@ body {
 .text-btn {
   border: 0;
   background: none;
-  padding: 0;
+  padding: 0.35rem 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   text-decoration: underline;
@@ -188,6 +188,26 @@ body {
   cursor: pointer;
 }
 .delivery-tray.is-dragging { border-color: var(--color-signal); background: rgb(255 77 0 / 5%); }
+
+/* ---- First-screen comparison: compressed vs original ---- */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.compare-item { border: 1px solid var(--color-ink); padding: 0.85rem; }
+.compare-visual {
+  height: 76px;
+  border: 1px solid var(--color-ink);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.compare-visual.is-compressed {
+  background: repeating-linear-gradient(45deg, #b9b3a8 0 8px, #d8d3c8 8px 16px);
+  filter: blur(1.5px);
+  opacity: 0.75;
+}
+.compare-visual.is-original {
+  background: repeating-linear-gradient(45deg, var(--color-signal) 0 8px, #ffb38c 8px 16px);
+}
+.compare-visual.is-original .seal { width: 34px; height: 34px; padding: 7px; gap: 2px; }
 .packing-list { border-top: 1px solid var(--color-ink); padding-top: 0.75rem; }
 
 .progress-rule { height: 2px; background: rgb(20 20 20 / 15%); }
@@ -427,7 +447,7 @@ body {
   line-height: 1.5;
   color: var(--color-muted);
 }
-.credits a { text-decoration: underline; text-underline-offset: 2px; }
+.credits a { display: inline-flex; align-items: center; min-height: 28px; text-decoration: underline; text-underline-offset: 2px; }
 .credits a:hover { color: var(--color-signal); }
 
 /* ---- Fitted loading states ---- */

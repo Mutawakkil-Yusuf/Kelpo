@@ -14,7 +14,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.post("/:slug/report", async (c) => {
   await checkRate(c, "report", 5, 60 * 60 * 1000);
   const link = await getLink(c.env, c.req.param("slug"));
-  if (link.status !== "active") throw new HttpError(404, "Link unavailable");
+  if (link.status !== "active") throw new HttpError(404, "This link is not available");
 
   const { reason } = reportSchema.parse(await c.req.json());
   const ip = c.req.header("CF-Connecting-IP") || c.req.header("X-Forwarded-For") || "local";

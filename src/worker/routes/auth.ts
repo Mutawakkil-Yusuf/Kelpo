@@ -26,7 +26,7 @@ const loginSchema = z.object({
 const app = new Hono<{ Bindings: Env }>();
 
 app.post("/signup", async (c) => {
-  await checkRate(c, "auth", 20, 60 * 60 * 1000);
+  await checkRate(c, "auth", 100, 60 * 60 * 1000);
   const input = signupSchema.parse(await c.req.json());
   const email = input.email.toLowerCase();
   const existing = await c.env.DB.prepare("SELECT id FROM accounts WHERE email = ?")
@@ -114,7 +114,7 @@ app.post("/brand", async (c) => {
 });
 
 app.post("/waitlist", async (c) => {
-  await checkRate(c, "auth", 20, 60 * 60 * 1000);
+  await checkRate(c, "auth", 100, 60 * 60 * 1000);
   const { email } = z.object({ email: z.string().trim().email().max(200) }).parse(await c.req.json());
   await c.env.DB.prepare("INSERT INTO waitlist (id, email, created_at) VALUES (?, ?, ?)")
     .bind(newId(), email.toLowerCase(), Date.now())
