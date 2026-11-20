@@ -44,18 +44,22 @@ fileRoutes.get("/:id", async (c) => {
   return new Response(object.body, { headers });
 });
 
-/** GET /api/og/:slug — public thumbnail for chat crawlers. */
+function brandResponse(): Response {
+  const png = brandCardPng();
+  const buffer = new ArrayBuffer(png.length);
+  new Uint8Array(buffer).set(png);
+  return new Response(new Blob([buffer], { type: "image/png" }), {
+    headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" },
+  });
+}
+
+/** GET /api/og — site card; GET /api/og/:slug — link thumbnail for chat crawlers. */
 export const ogRoutes = new Hono<{ Bindings: Env }>();
 
+ogRoutes.get("/", () => brandResponse());
+
 ogRoutes.get("/:slug", async (c) => {
-  const brand = () => {
-    const png = brandCardPng();
-    const buffer = new ArrayBuffer(png.length);
-    new Uint8Array(buffer).set(png);
-    return new Response(new Blob([buffer], { type: "image/png" }), {
-      headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" },
-    });
-  };
+  const brand = brandResponse;
 
   try {
     const link = await getLink(c.env, c.req.param("slug"));

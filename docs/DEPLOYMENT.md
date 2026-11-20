@@ -35,8 +35,11 @@ egress and 10 GB storage.
 - Env vars on production, preview and development:
   - `VITE_API_URL=https://kelpo.mutawakkil280.workers.dev`
   - `KELPO_API_URL=https://kelpo.mutawakkil280.workers.dev`
-- `/p/:slug` rewrites to `/api/p/[slug]`, which injects og: tags. The handler reads
-  the slug from the URL because Vercel's rewrite does not populate route params.
+  - `VITE_SITE_URL=https://usekelpo.vercel.app` (used for the homepage link preview)
+- `/p/:slug` rewrites to `/api/p/[slug]`, which replaces the site-wide og: tags with
+  the link's own title, note and thumbnail. The handler reads the slug from the URL
+  because Vercel's rewrite does not populate route params.
+- The homepage carries static og: tags; its image comes from `/api/og` on the Worker.
 
 Deploy with `npx vercel deploy --prod`.
 

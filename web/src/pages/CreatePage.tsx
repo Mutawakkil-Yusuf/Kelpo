@@ -151,26 +151,52 @@ export default function CreatePage() {
         <h1 className="settle-in mt-12 font-display text-5xl tracking-tight">Ready to send.</h1>
         <p className="mt-2 text-sm text-muted">This is how it will look in chat.</p>
 
-        <div className="chat-preview settle-in mt-8">
+        <div className="mt-8 flex items-center gap-3">
+          <span className="font-mono text-xs uppercase tracking-widest text-muted">Link preview</span>
+          <span className="h-px flex-1 bg-ink/15" />
+        </div>
+
+        <div className="chat-preview settle-in mt-3">
           <div className="chat-contact">
             <span className="seal seal-sm" aria-hidden="true">
               {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
             </span>
             <div>
               <p className="text-sm font-medium">Kelpo</p>
-              <p className="font-mono text-[11px] text-muted">link · kelpo.app</p>
+              <p className="font-mono text-[11px] text-muted">
+                link · {new URL(result.url).host}
+              </p>
             </div>
           </div>
-          <div className="chat-card">
+          <a
+            className="chat-card chat-card-link"
+            href={result.url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open the shared delivery"
+          >
             {first && <img className="chat-thumb" src={ogUrl(result.link.slug)} alt="" />}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{result.link.title}</p>
               <p className="mt-1 truncate text-xs text-muted">
                 {result.link.files.length} files · {formatBytes(result.link.files.reduce((s, f) => s + f.sizeBytes, 0))} · original quality
               </p>
               <p className="mt-2 font-mono text-[11px] text-signal">Ends {formatExpiry(result.expiresAt)}</p>
             </div>
-          </div>
+            <span className="chat-arrow" aria-hidden="true">↗</span>
+          </a>
+          <p className="mt-2 font-mono text-[11px] text-muted">
+            Tap the card to open the delivery.
+          </p>
+        </div>
+
+        <div className="og-links mt-3">
+          <a href={result.url} target="_blank" rel="noreferrer">
+            Open link <span aria-hidden="true">↗</span>
+          </a>
+          <a href={ogUrl(result.link.slug)} target="_blank" rel="noreferrer">
+            View preview image <span aria-hidden="true">↗</span>
+          </a>
         </div>
 
         <div className="mt-8">

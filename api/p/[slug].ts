@@ -64,6 +64,8 @@ export default async function handler(
 
   const shell = await fetch(new URL("/index.html", request.url));
   let html = await shell.text();
+  // The built shell has site-wide tags; a link page must not carry two sets.
+  html = html.replace(/<meta (?:property|name)="(?:og:|twitter:)[^"]*"[^>]*>/g, "");
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)}</title>`);
   html = html.replace("</head>", `${tags}\n</head>`);
 
