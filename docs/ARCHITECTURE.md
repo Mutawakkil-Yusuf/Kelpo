@@ -5,7 +5,7 @@
 ```
 Client phone                                    Sender phone
    |                                                  |
-   | https://kelpo.vercel.app/p/<slug>                 | https://kelpo.vercel.app/
+   | https://usekelpo.vercel.app/p/<slug>                 | https://usekelpo.vercel.app/
    v                                                  v
 +--------------------------- Vercel --------------------------------+
 |  api/p/[slug].ts          edge function: fetches public meta from |

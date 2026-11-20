@@ -17,8 +17,8 @@
 
   "vars": {
     "APP_URL": "https://kelpo.mutawakkil280.workers.dev",
-    "PUBLIC_APP_URL": "https://kelpo.vercel.app",
-    "ALLOWED_ORIGIN": "https://kelpo.vercel.app,*.vercel.app",
+    "PUBLIC_APP_URL": "https://usekelpo.vercel.app",
+    "ALLOWED_ORIGIN": "https://usekelpo.vercel.app,*.vercel.app",
     "SUPABASE_URL": "https://wuzggadpxpijybqjshhh.supabase.co",
     "STORAGE_BUCKET": "kelpo-files"
   }
