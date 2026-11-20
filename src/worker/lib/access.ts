@@ -71,7 +71,7 @@ export async function getFile(env: Env, id: string): Promise<FileRow> {
 
 export async function checkRate(
   c: AppContext,
-  action: "create" | "password_fail" | "report" | "upload" | "like",
+  action: "create" | "password_fail" | "report" | "upload" | "like" | "auth",
   limit: number,
   windowMs: number,
 ): Promise<void> {

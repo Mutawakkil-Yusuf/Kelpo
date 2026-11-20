@@ -45,7 +45,10 @@ blocks. So:
   `?access=<token>`. The client page sends `Referrer-Policy: no-referrer`.
 
 CORS allows exact origins from `ALLOWED_ORIGIN` plus `*.vercel.app` preview URLs, with
-`X-Kelpo-Owner` and `X-Kelpo-Access` in `Access-Control-Allow-Headers`.
+`Authorization`, `X-Kelpo-Owner` and `X-Kelpo-Access` in `Access-Control-Allow-Headers`.
+Sender account sessions are random tokens stored as SHA-256 digests. PBKDF2 uses 10k
+iterations to fit the Workers Free 10 ms CPU budget; older 210k hashes carry no prefix
+and are still verified at their original cost.
 
 ## Data model (migrations/0001_initial.sql)
 

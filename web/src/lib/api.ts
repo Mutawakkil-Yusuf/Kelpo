@@ -1,4 +1,5 @@
 import type { PublicLink } from "../../../src/worker/types";
+import { getSession } from "./auth";
 import { apiUrl } from "./config";
 import { getAccessToken, getOwnerToken } from "./session";
 
@@ -23,6 +24,8 @@ async function request<T>(
   if (owner) headers.set("X-Kelpo-Owner", owner);
   const access = options?.slug ? getAccessToken(options.slug) : "";
   if (access) headers.set("X-Kelpo-Access", access);
+  const session = getSession();
+  if (session) headers.set("Authorization", `Bearer ${session}`);
 
   const response = await fetch(apiUrl(path), { ...init, headers });
   if (!response.ok) {
@@ -73,7 +76,103 @@ function upload(
   });
 }
 
+export interface DashboardData {
+  account: { id: string; email: string; plan: string };
+  links: Array<{
+    slug: string;
+    title: string;
+    status: string;
+    expires_at: number;
+    created_at: number;
+    view_count: number;
+    report_count: number;
+  }>;
+  brand: { accentColor: string | null; logoUrl: string | null };
+}
+
+export interface Pin {
+  id: string;
+  file_id: string;
+  x: number;
+  y: number;
+  message: string;
+  author: string;
+  created_at: number;
+}
+
 export const api = {
+  signup(input: { email: string; password: string; ownerToken?: string }) {
+    return request<{ token: string; account: { id: string; email: string; plan: string } }>(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  login(input: { email: string; password: string }) {
+    return request<{ token: string; account: { id: string; email: string; plan: string } }>(
+      "/api/auth/login",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
+  },
+
+  me() {
+    return request<DashboardData>("/api/auth/me");
+  },
+
+  saveBrand(input: { accentColor: string | null; logoUrl: string | null }) {
+    return request<{ ok: boolean }>("/api/auth/brand", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  },
+
+  revoke(slug: string) {
+    return request<{ ok: boolean }>(`/api/links/${slug}/revoke`, { method: "POST" });
+  },
+
+  extend(slug: string, expiry: "24h" | "7d" | "30d") {
+    return request<{ expiresAt: number }>(`/api/links/${slug}/extend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiry }),
+    });
+  },
+
+  getBrand(slug: string) {
+    return request<{ accentColor: string | null; logoUrl: string | null }>(
+      `/api/links/${slug}/brand`,
+    );
+  },
+
+  getPins(slug: string) {
+    return request<{ pins: Pin[] }>(`/api/links/${slug}/pins`, undefined, { slug });
+  },
+
+  addPin(slug: string, pin: { fileId: string; x: number; y: number; message: string; author: string }) {
+    return request<{ id: string }>(`/api/links/${slug}/pins`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pin),
+    }, { slug });
+  },
+
+  joinWaitlist(email: string) {
+    return request<{ ok: boolean }>("/api/auth/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  },
+
   createLink(input: {
     title: string;
     message?: string;

@@ -47,6 +47,20 @@ Scope and phases: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - One like per visitor with a short thank-you popup
 - Credit line on every screen: By Mutawakkil, with Instagram, X and GitHub links
 
+### Added from the three product directions
+
+- **Sender accounts, optional.** Creating and sending never asks for an account. Only the
+  sender who chooses "Save this one to an account" is asked to sign up, and any link from
+  that browser is claimed at signup.
+- Dashboard with link history, view counts, revoke, extend (24h/7d/30d), brand kit
+  (accent colour and logo) and a Studio waitlist. No payment is taken yet.
+- Client notes: anyone with the link can drop numbered pins on images without signing in;
+  notes appear under the gallery and on the image.
+- Fitted loading states on every screen: a pressing seal, a sweeping rule and screen-specific
+  plain-language lines. Dashboard lists use skeletons.
+
+**Recipient rule:** no signup wall, no account prompt, no auth on the client path.
+
 ## Deploy
 
 **Cloudflare**

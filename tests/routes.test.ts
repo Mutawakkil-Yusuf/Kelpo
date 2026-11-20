@@ -32,6 +32,10 @@ class FakeDb {
   links = new Map<string, AnyRecord>();
   files = new Map<string, AnyRecord>();
   likes = new Set<string>();
+  accounts = new Map<string, AnyRecord>();
+  sessions = new Map<string, AnyRecord>();
+  pins = new Map<string, AnyRecord>();
+  waitlist = new Set<string>();
 
   prepare(sql: string) {
     return new FakeStatement(this, sql);
@@ -45,6 +49,14 @@ class FakeDb {
     }
     if (sql.includes("COUNT(*) AS count FROM rate_events")) return { count: 0 };
     if (sql.includes("COUNT(*) AS count FROM likes")) return { count: this.likes.size };
+    if (sql.includes("FROM accounts WHERE email")) {
+      return [...this.accounts.values()].find((a) => a.email === args[0]) ?? null;
+    }
+    if (sql.includes("FROM accounts WHERE id")) return this.accounts.get(String(args[0])) ?? null;
+    if (sql.includes("FROM sessions WHERE token_hash")) return this.sessions.get(String(args[0])) ?? null;
+    if (sql.includes("FROM links WHERE account_id")) {
+      return [...this.links.values()].find((l) => l.account_id === args[0]) ?? null;
+    }
     if (sql.includes("SELECT report_count FROM links")) {
       return { report_count: this.links.get(String(args[0]))?.report_count ?? 0 };
     }
@@ -61,6 +73,12 @@ class FakeDb {
       return [...this.files.values()]
         .filter((f) => f.link_slug === args[0])
         .sort((a, b) => Number(a.sort_order) - Number(b.sort_order));
+    }
+    if (sql.includes("FROM pins WHERE link_slug")) {
+      return [...this.pins.values()].filter((p) => p.link_slug === args[0]);
+    }
+    if (sql.includes("FROM links WHERE account_id")) {
+      return [...this.links.values()].filter((l) => l.account_id === args[0]);
     }
     return [];
   }
@@ -97,6 +115,40 @@ class FakeDb {
       });
     } else if (sql.startsWith("INSERT OR IGNORE INTO likes")) {
       this.likes.add(String(args[0]));
+    } else if (sql.startsWith("INSERT INTO accounts")) {
+      this.accounts.set(String(args[0]), {
+        id: args[0], email: args[1], password_salt: args[2], password_hash: args[3],
+        plan: "free", created_at: args[5],
+      });
+    } else if (sql.startsWith("INSERT INTO sessions")) {
+      this.sessions.set(String(args[0]), { account_id: args[1], expires_at: args[3] });
+    } else if (sql.startsWith("INSERT INTO pins")) {
+      this.pins.set(String(args[0]), {
+        id: args[0], link_slug: args[1], file_id: args[2], x: args[3], y: args[4],
+        message: args[5], author: args[6], created_at: args[7],
+      });
+    } else if (sql.startsWith("INSERT INTO waitlist")) {
+      this.waitlist.add(String(args[1]));
+    } else if (sql.includes("UPDATE links SET account_id")) {
+      for (const link of this.links.values()) {
+        if (link.owner_token_hash === args[1]) link.account_id = args[0];
+      }
+    } else if (sql.includes("UPDATE links SET accent_color")) {
+      for (const link of this.links.values()) {
+        if (link.account_id === args[2]) {
+          link.accent_color = args[0];
+          link.logo_url = args[1];
+        }
+      }
+    } else if (sql.includes("UPDATE links SET expires_at")) {
+      const link = this.links.get(String(args[1]));
+      if (link) {
+        link.expires_at = args[0];
+        link.status = "active";
+      }
+    } else if (sql.includes("UPDATE links SET status = 'disabled'")) {
+      const link = this.links.get(String(args[0]));
+      if (link) link.status = "disabled";
     } else if (sql.includes("UPDATE links SET status = 'active'")) {
       const link = this.links.get(String(args[0]));
       if (link) link.status = "active";
@@ -338,6 +390,70 @@ describe("create to download flow", () => {
 
     const viaQuery = await app.request(`/api/links/${slug}?access=${accessToken}`, {}, env);
     expect(viaQuery.status).toBe(200);
+  });
+
+  it("keeps the sender account optional and adds client notes", async () => {
+    const env = makeEnv();
+    const created = await app.request(
+      "/api/links",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Client delivery", expiry: "7d", hasPassword: false, fileCount: 1 }),
+      },
+      env,
+    );
+    const { slug, ownerToken } = (await created.json()) as { slug: string; ownerToken: string };
+
+    const form = new FormData();
+    form.append("file", new Blob([pngBytes()], { type: "image/png" }), "cover.png");
+    const uploaded = await app.request(
+      `/api/links/${slug}/files`,
+      { method: "POST", headers: { "X-Kelpo-Owner": ownerToken }, body: form },
+      env,
+    );
+    const { id } = (await uploaded.json()) as { id: string };
+    await app.request(`/api/links/${slug}/finalize`, { method: "POST", headers: { "X-Kelpo-Owner": ownerToken } }, env);
+
+    const signup = await app.request(
+      "/api/auth/signup",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "studio@example.com", password: "password123", ownerToken }),
+      },
+      env,
+    );
+    expect(signup.status).toBe(201);
+    const { token } = (await signup.json()) as { token: string };
+    const auth = { Authorization: `Bearer ${token}` };
+
+    const me = await app.request("/api/auth/me", { headers: auth }, env);
+    const dashboard = (await me.json()) as { links: unknown[] };
+    expect(dashboard.links).toHaveLength(1);
+
+    const extended = await app.request(
+      `/api/links/${slug}/extend`,
+      { method: "POST", headers: { ...auth, "Content-Type": "application/json" }, body: JSON.stringify({ expiry: "30d" }) },
+      env,
+    );
+    expect(extended.status).toBe(200);
+
+    const pin = await app.request(
+      `/api/links/${slug}/pins`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: id, x: 40, y: 60, message: "Crop tighter here", author: "Ada" }),
+      },
+      env,
+    );
+    expect(pin.status).toBe(201);
+    const pins = await app.request(`/api/links/${slug}/pins`, {}, env);
+    expect(((await pins.json()) as { pins: unknown[] }).pins).toHaveLength(1);
+
+    const revoked = await app.request(`/api/links/${slug}/revoke`, { method: "POST", headers: auth }, env);
+    expect(revoked.status).toBe(200);
   });
 
   it("counts one like per visitor", async () => {

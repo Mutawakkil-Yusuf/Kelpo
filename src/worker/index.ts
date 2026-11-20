@@ -5,10 +5,12 @@ import { z } from "zod";
 import type { Env } from "./env";
 import { getLink, HttpError } from "./lib/access";
 import { purgeExpired } from "./lib/cleanup";
+import authRoutes from "./routes/auth";
 import createRoutes from "./routes/create";
 import { fileRoutes, ogRoutes } from "./routes/file";
 import likeRoutes from "./routes/like";
 import linkRoutes from "./routes/link";
+import manageRoutes from "./routes/manage";
 import reportRoutes from "./routes/report";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -32,7 +34,7 @@ app.use(
       if (match === "*" || match.startsWith("*.")) return origin;
       return match;
     },
-    allowHeaders: ["Content-Type", "X-Kelpo-Owner", "X-Kelpo-Access"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Kelpo-Owner", "X-Kelpo-Access"],
     allowMethods: ["GET", "POST", "OPTIONS"],
     maxAge: 600,
   }),
@@ -82,6 +84,8 @@ app.get("/api/og-meta/:slug", async (c) => {
 app.route("/api/links", createRoutes);
 app.route("/api/links", linkRoutes);
 app.route("/api/links", reportRoutes);
+app.route("/api/links", manageRoutes);
+app.route("/api/auth", authRoutes);
 app.route("/api/like", likeRoutes);
 app.route("/api/files", fileRoutes);
 app.route("/api/og", ogRoutes);

@@ -4,5 +4,8 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
   "outputDirectory": "web/dist",
-  "rewrites": [{ "source": "/p/:slug", "destination": "/api/p/:slug" }]
+  "rewrites": [
+    { "source": "/p/:slug", "destination": "/api/p/:slug" },
+    { "source": "/dashboard", "destination": "/index.html" }
+  ]
 }

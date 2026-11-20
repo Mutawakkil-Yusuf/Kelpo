@@ -1,8 +1,9 @@
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, type MouseEvent, useEffect, useMemo, useState } from "react";
 import Credits from "../components/Credits";
 import LikeButton from "../components/LikeButton";
+import Loading from "../components/Loading";
 import TryKelpoPrompt from "../components/TryKelpoPrompt";
-import { api, ApiError, type PublicLink } from "../lib/api";
+import { api, ApiError, type Pin, type PublicLink } from "../lib/api";
 import { downloadUrl, formatBytes, formatExpiry, previewUrl, timeLeft, zipUrl } from "../lib/format";
 import { setAccessToken } from "../lib/session";
 
@@ -28,11 +29,27 @@ export default function LinkPage({ slug }: { slug: string }) {
   const [reportReason, setReportReason] = useState("other");
   const [reportSent, setReportSent] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  const [brand, setBrand] = useState<{ accentColor: string | null; logoUrl: string | null }>({
+    accentColor: null,
+    logoUrl: null,
+  });
+  const [pins, setPins] = useState<Pin[]>([]);
+  const [pinMode, setPinMode] = useState(false);
+  const [draftPin, setDraftPin] = useState<{ x: number; y: number } | null>(null);
+  const [pinText, setPinText] = useState("");
+  const [pinAuthor, setPinAuthor] = useState("Client");
+  const [savingPin, setSavingPin] = useState(false);
 
   async function load() {
     setPhase("loading");
     try {
       setLink(await api.getLink(slug));
+      const [brandResult, pinResult] = await Promise.allSettled([
+        api.getBrand(slug),
+        api.getPins(slug),
+      ]);
+      if (brandResult.status === "fulfilled") setBrand(brandResult.value);
+      if (pinResult.status === "fulfilled") setPins(pinResult.value.pins);
       setPhase("ready");
     } catch (cause) {
       if (cause instanceof ApiError) {
@@ -113,10 +130,49 @@ export default function LinkPage({ slug }: { slug: string }) {
     }
   }
 
+  async function reloadPins() {
+    try {
+      const result = await api.getPins(slug);
+      setPins(result.pins);
+    } catch {
+      // The delivery still works if notes cannot be loaded.
+    }
+  }
+
+  async function submitPin() {
+    if (viewer === null || !draftPin || !pinText.trim()) return;
+    setSavingPin(true);
+    try {
+      await api.addPin(slug, {
+        fileId: link!.files[viewer].id,
+        x: draftPin.x,
+        y: draftPin.y,
+        message: pinText.trim(),
+        author: pinAuthor.trim() || "Client",
+      });
+      setDraftPin(null);
+      setPinText("");
+      await reloadPins();
+    } catch {
+      setError("The note could not be saved.");
+    } finally {
+      setSavingPin(false);
+    }
+  }
+
+  function placePin(event: MouseEvent<HTMLImageElement>) {
+    if (!pinMode || viewer === null) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setDraftPin({
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    });
+  }
+
   if (phase === "loading") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-xl items-center px-5">
-        <p className="font-display text-2xl text-muted">Opening delivery…</p>
+        <Loading label="Opening delivery." detail="Bringing in the originals and your notes." />
       </main>
     );
   }
@@ -184,9 +240,18 @@ export default function LinkPage({ slug }: { slug: string }) {
   const current = viewer === null ? null : link.files[viewer];
 
   return (
-    <main className="mx-auto min-h-dvh max-w-3xl px-5 py-8 sm:py-12">
+    <main
+      className="mx-auto min-h-dvh max-w-3xl px-5 py-8 sm:py-12"
+      style={brand.accentColor ? ({ "--color-signal": brand.accentColor } as CSSProperties) : undefined}
+    >
       <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
-        <span className="shrink-0 font-display text-2xl">Kelpo</span>
+        <span className="flex shrink-0 items-center gap-3">
+          {brand.logoUrl ? (
+            <img className="brand-logo" src={brand.logoUrl} alt="" />
+          ) : (
+            <span className="font-display text-2xl">Kelpo</span>
+          )}
+        </span>
         <span className="hidden text-right font-mono text-[10px] uppercase leading-tight tracking-widest text-muted sm:block sm:text-xs">
           Delivered at original quality
         </span>
@@ -294,7 +359,28 @@ export default function LinkPage({ slug }: { slug: string }) {
             </button>
           )}
         </div>
-        <div className="mt-5 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        {pins.length > 0 && (
+          <div className="mt-6 border-t border-ink/10 pt-5">
+            <p className="font-mono text-xs uppercase tracking-widest text-muted">Client notes</p>
+            <div className="mt-3 space-y-3">
+              {pins.map((pin, index) => {
+                const file = link.files.find((item) => item.id === pin.file_id);
+                return (
+                  <div key={pin.id} className="pin-note">
+                    <span className="pin-note-number">{index + 1}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm">{pin.message}</p>
+                      <p className="mt-1 font-mono text-[11px] text-muted">
+                        {pin.author} · {file?.name ?? "file"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div className="mt-8 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
           <Credits />
           <LikeButton />
         </div>
@@ -303,12 +389,24 @@ export default function LinkPage({ slug }: { slug: string }) {
       {current && viewer !== null && (
         <div className="viewer" role="dialog" aria-modal="true" onClick={() => setViewer(null)}>
           <div className="viewer-bar" onClick={(event) => event.stopPropagation()}>
-            <span className="min-w-0 truncate text-xs sm:text-sm">{current.name}</span>
-            <div className="flex items-center gap-4">
-              <a className="underline underline-offset-2 text-sm" href={downloadUrl(current.id, slug)}>
-                Download original
+            <span className="hidden min-w-0 truncate text-xs sm:block sm:text-sm">{current.name}</span>
+            <div className="flex items-center gap-2 text-xs sm:gap-4 sm:text-sm">
+              {current.contentType.startsWith("image/") && (
+                <button
+                  className={pinMode ? "shrink-0 text-signal underline underline-offset-2" : "shrink-0 underline underline-offset-2"}
+                  onClick={() => {
+                    setPinMode((value) => !value);
+                    setDraftPin(null);
+                  }}
+                >
+                  {pinMode ? "Cancel note" : "Add a note"}
+                </button>
+              )}
+              <a className="shrink-0 underline underline-offset-2" href={downloadUrl(current.id, slug)}>
+                <span className="hidden sm:inline">Download original</span>
+                <span className="sm:hidden">Download</span>
               </a>
-              <button onClick={() => setViewer(null)}>Close</button>
+              <button className="shrink-0" onClick={() => setViewer(null)}>Close</button>
             </div>
           </div>
           <div className="viewer-stage" onClick={(event) => event.stopPropagation()}>
@@ -322,12 +420,31 @@ export default function LinkPage({ slug }: { slug: string }) {
               </button>
             )}
             {current.contentType.startsWith("image/") ? (
-              <img
-                className="viewer-image"
-                src={previewUrl(current.id, slug)}
-                alt={current.name}
-                onClick={(event) => event.stopPropagation()}
-              />
+              <div className={`viewer-image-wrap ${pinMode ? "is-pinning" : ""}`}>
+                <img
+                  className="viewer-image"
+                  src={previewUrl(current.id, slug)}
+                  alt={current.name}
+                  onClick={placePin}
+                />
+                {pins
+                  .filter((pin) => pin.file_id === current.id)
+                  .map((pin, index) => (
+                    <span
+                      key={pin.id}
+                      className="pin-marker"
+                      style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
+                      title={`${pin.author}: ${pin.message}`}
+                    >
+                      {index + 1}
+                    </span>
+                  ))}
+                {draftPin && (
+                  <span className="pin-marker is-draft" style={{ left: `${draftPin.x}%`, top: `${draftPin.y}%` }}>
+                    +
+                  </span>
+                )}
+              </div>
             ) : (
               <div className="viewer-pdf" onClick={(event) => event.stopPropagation()}>
                 <span className="font-display text-6xl text-signal">PDF</span>
@@ -345,6 +462,31 @@ export default function LinkPage({ slug }: { slug: string }) {
               </button>
             )}
           </div>
+          {draftPin && (
+            <div className="pin-form" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-xs uppercase tracking-widest">New note</p>
+                <button className="text-xs underline underline-offset-2" onClick={() => setDraftPin(null)}>
+                  Drop it
+                </button>
+              </div>
+              <input
+                className="field mt-3 text-sm"
+                placeholder="What should be changed?"
+                value={pinText}
+                onChange={(event) => setPinText(event.target.value)}
+              />
+              <input
+                className="field mt-3 font-mono text-xs"
+                placeholder="Your name"
+                value={pinAuthor}
+                onChange={(event) => setPinAuthor(event.target.value)}
+              />
+              <button className="primary-btn mt-4 w-full" disabled={savingPin} onClick={() => void submitPin()}>
+                {savingPin ? "Saving note." : "Pin note"}
+              </button>
+            </div>
+          )}
           <div className="viewer-count" onClick={(event) => event.stopPropagation()}>
             {viewer + 1} / {link.files.length}
           </div>

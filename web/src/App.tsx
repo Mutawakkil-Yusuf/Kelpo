@@ -1,9 +1,12 @@
 import CreatePage from "./pages/CreatePage";
+import DashboardPage from "./pages/DashboardPage";
 import LinkPage from "./pages/LinkPage";
 
-/** Minimal router: /p/:slug is the client view, everything else is the create flow. */
+/** Two public entry points; the dashboard is reached only by choice. */
 export default function App() {
-  const match = window.location.pathname.match(/^\/p\/([^/]+)\/?$/);
+  const path = window.location.pathname;
+  if (path === "/dashboard" || path.startsWith("/dashboard/")) return <DashboardPage />;
+  const match = path.match(/^\/p\/([^/]+)\/?$/);
   if (match) return <LinkPage slug={decodeURIComponent(match[1])} />;
   return <CreatePage />;
 }

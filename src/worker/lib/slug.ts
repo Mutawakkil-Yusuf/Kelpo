@@ -1,6 +1,6 @@
 /** Random tokens and stable hashes. All randomness comes from Web Crypto. */
 
-function randomToken(bytes: number): string {
+export function randomToken(bytes: number): string {
   const raw = crypto.getRandomValues(new Uint8Array(bytes));
   let binary = "";
   for (const byte of raw) binary += String.fromCharCode(byte);

@@ -12,6 +12,9 @@ export interface LinkRow {
   owner_token_hash: string;
   expected_files: number;
   og_key: string | null;
+  account_id: string | null;
+  accent_color: string | null;
+  logo_url: string | null;
   expires_at: number;
   created_at: number;
   status: LinkStatus;

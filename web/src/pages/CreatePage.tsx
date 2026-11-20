@@ -249,7 +249,10 @@ export default function CreatePage() {
         <p className="mt-8 border-t border-ink/15 pt-5 text-sm text-muted">
           Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
         </p>
-        <button className="text-btn mt-4" onClick={reset}>Create another delivery</button>
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+          <button className="text-btn" onClick={reset}>Create another delivery</button>
+          <a className="text-btn" href="/dashboard">Save this one to an account — optional</a>
+        </div>
         <footer className="mt-10 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
           <Credits />
           <LikeButton />

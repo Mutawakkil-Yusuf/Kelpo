@@ -16,15 +16,16 @@ One flow end to end, no accounts:
 Explicitly out: accounts/dashboards/history, SVG/PSD/video, pinned feedback, custom
 domains, payments, native apps.
 
-## Phase 2 — sender accounts
-Link history, revoke and extend, "opened" notifications, resumable uploads for weak
-networks. The `owner_token_hash` column exists from MVP so links can be claimed later.
+## Phase 2 — sender accounts (first slice built)
+Optional accounts, link history, view counts, revoke and extend. Links created in the
+same browser are claimed at signup via the owner token. Still to do: resumable uploads
+for weak networks, "opened" notifications.
 
-## Phase 3 — client feedback
-Numbered pins on designs so clients comment without an account. Overlaps ProofDesk;
-could share its annotation layer.
+## Phase 3 — client feedback (first slice built)
+Numbered pins on images with a note and author, no account needed. Still to do: reply
+threads, pin editing, email digest for the sender.
 
-## Phase 4 — growth
-Brand kit on the client page (logo, accent colour), custom domains, paid tier with
-larger files and longer expiry. Storage stays on R2 — scale by upgrading the Worker
-plan and R2 quota, not by migrating vendors.
+## Phase 4 — growth (hooks built)
+Brand kit (accent colour and logo) applied to client pages, Studio waitlist. Still to do:
+custom domains, real payments, larger file and expiry limits. Storage stays on Supabase
+until R2 billing is available.

@@ -5,9 +5,21 @@ declare const process: { env: Record<string, string | undefined> };
 
 const slug = process.env.LINK_SLUG || "JJ1vzZkaDz66jA-DNWSSzlt2";
 
+/** Vercel's edge occasionally aborts a headless navigation; retry it. */
+async function open(page: import("@playwright/test").Page, path: string) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await page.goto(path, { waitUntil: "domcontentloaded", timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) throw new Error(`Could not open ${path} after three tries`);
+    }
+  }
+}
+
 test("both screens fit the viewport and carry credits", async ({ page }) => {
   for (const path of ["/", `/p/${slug}`]) {
-    await page.goto(path, { waitUntil: "networkidle" });
+    await open(page, path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
@@ -17,7 +29,7 @@ test("both screens fit the viewport and carry credits", async ({ page }) => {
 });
 
 test("a created link shows a clickable OG preview", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+  await open(page, "/");
   await page.locator('input[type="file"]').setInputFiles({
     name: "cover.png",
     mimeType: "image/png",
@@ -37,8 +49,53 @@ test("a created link shows a clickable OG preview", async ({ page }) => {
   expect(og.headers()["content-type"]).toContain("image/png");
 });
 
+test("a recipient can leave a note without an account", async ({ page }) => {
+  await open(page, "/");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: readFileSync("tests/e2e/fixture.png"),
+  });
+  await page.getByPlaceholder("Brand refresh — final files").fill("Pins check");
+  await page.getByRole("button", { name: "Seal & create link" }).click();
+  await page.getByText("Ready to send.").waitFor({ timeout: 30_000 });
+  const url = await page.locator(".chat-card-link").getAttribute("href");
+
+  await open(page, url!);
+  const text = await page.locator("body").innerText();
+  expect(text).not.toMatch(/create account|sign in|password/i);
+
+  await page.locator(".frame-button").first().click();
+  await page.getByRole("button", { name: "Not now" }).click();
+  await page.getByRole("button", { name: "Add a note" }).click();
+  await page.locator(".viewer-image").click({ position: { x: 120, y: 90 } });
+  await page.getByPlaceholder("What should be changed?").fill("Crop tighter here");
+  await page.getByRole("button", { name: "Pin note" }).click();
+  await expect(page.getByText("Crop tighter here")).toBeVisible();
+});
+
+test("a sender can save links from an optional dashboard", async ({ page }) => {
+  await open(page, "/");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: readFileSync("tests/e2e/fixture.png"),
+  });
+  await page.getByPlaceholder("Brand refresh — final files").fill("Saved delivery");
+  await page.getByRole("button", { name: "Seal & create link" }).click();
+  await page.getByText("Ready to send.").waitFor({ timeout: 30_000 });
+
+  await page.getByRole("link", { name: /Save this one to an account/ }).click();
+  await page.getByText("Keep your deliveries together.").waitFor();
+  await page.getByPlaceholder("you@studio.com").fill(`studio-${Date.now()}@example.com`);
+  await page.locator("input[type=password]").fill("password123");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.getByText("Your deliveries.").waitFor({ timeout: 20_000 });
+  await expect(page.getByText("Saved delivery")).toBeVisible();
+});
+
 test("a recipient gets the prompt once, and the like popup opens", async ({ page }) => {
-  await page.goto(`/p/${slug}`, { waitUntil: "networkidle" });
+  await open(page, `/p/${slug}`);
   await page.locator(".frame-button").first().click();
   const prompt = page.getByRole("dialog", { name: "Try Kelpo" });
   await expect(prompt).toBeVisible();

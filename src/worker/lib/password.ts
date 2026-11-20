@@ -1,7 +1,10 @@
 /** Password hashing and signed link-access cookies. Web Crypto only. */
 
 const encoder = new TextEncoder();
-const ITERATIONS = 210_000;
+// Workers Free allows 10 ms CPU per invocation. 10k PBKDF2 iterations stay inside it.
+// Older records carry no prefix and are verified at the original 210k count.
+const ITERATIONS = 10_000;
+const LEGACY_ITERATIONS = 210_000;
 
 function toBase64(bytes: ArrayBuffer | Uint8Array): string {
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -26,7 +29,7 @@ export interface PasswordRecord {
   hash: string;
 }
 
-async function derive(password: string, salt: Uint8Array): Promise<Uint8Array> {
+async function derive(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(password),
@@ -37,7 +40,7 @@ async function derive(password: string, salt: Uint8Array): Promise<Uint8Array> {
   const safeSalt = new Uint8Array(salt.length);
   safeSalt.set(salt);
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: safeSalt, iterations: ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: safeSalt, iterations, hash: "SHA-256" },
     key,
     256,
   );
@@ -46,15 +49,19 @@ async function derive(password: string, salt: Uint8Array): Promise<Uint8Array> {
 
 export async function hashPassword(password: string): Promise<PasswordRecord> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  return { salt: toBase64(salt), hash: toBase64(await derive(password, salt)) };
+  const hash = toBase64(await derive(password, salt, ITERATIONS));
+  return { salt: toBase64(salt), hash: `${ITERATIONS}:${hash}` };
 }
 
 export async function verifyPassword(
   password: string,
   record: PasswordRecord,
 ): Promise<boolean> {
-  const expected = fromBase64(record.hash);
-  const actual = await derive(password, fromBase64(record.salt));
+  const marker = record.hash.indexOf(":");
+  const iterations = marker === -1 ? LEGACY_ITERATIONS : Number(record.hash.slice(0, marker));
+  const hash = marker === -1 ? record.hash : record.hash.slice(marker + 1);
+  const expected = fromBase64(hash);
+  const actual = await derive(password, fromBase64(record.salt), iterations);
   return constantTimeEqual(actual, expected);
 }
 
