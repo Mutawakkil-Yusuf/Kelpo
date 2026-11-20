@@ -44,7 +44,19 @@ fileRoutes.get("/:id", async (c) => {
   return new Response(object.body, { headers });
 });
 
-function brandResponse(): Response {
+async function brandResponse(env: Env): Promise<Response> {
+  // The typographic site card is a static asset on the Vite app.
+  try {
+    const origin = (env.PUBLIC_APP_URL || env.APP_URL).replace(/\/$/, "");
+    const site = await fetch(`${origin}/og-home.png`);
+    if (site.ok && site.body) {
+      return new Response(site.body, {
+        headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=3600" },
+      });
+    }
+  } catch {
+    // fall through to the in-process card
+  }
   const png = brandCardPng();
   const buffer = new ArrayBuffer(png.length);
   new Uint8Array(buffer).set(png);
@@ -53,22 +65,33 @@ function brandResponse(): Response {
   });
 }
 
-/** GET /api/og — site card; GET /api/og/:slug — link thumbnail for chat crawlers. */
+/** GET /api/og — site card; GET /api/og/:slug — that link's rendered card. */
 export const ogRoutes = new Hono<{ Bindings: Env }>();
 
-ogRoutes.get("/", () => brandResponse());
+ogRoutes.get("/", async (c) => brandResponse(c.env));
 
 ogRoutes.get("/:slug", async (c) => {
-  const brand = brandResponse;
+  const brand = () => brandResponse(c.env);
 
   try {
     const link = await getLink(c.env, c.req.param("slug"));
-    if (link.status !== "active" || link.expires_at <= Date.now() || link.password_hash) {
-      return brand();
+    if (link.status !== "active" || link.expires_at <= Date.now()) return brand();
+
+    if (link.og_key) {
+      const card = await getObject(c.env, link.og_key);
+      if (card) {
+        return new Response(card.body, {
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
     }
 
+    // Older links without a card fall back to their first image.
     const file = await c.env.DB.prepare(
-      `SELECT * FROM files WHERE link_slug = ?
+      `SELECT r2_key, content_type FROM files WHERE link_slug = ?
          AND content_type IN ('image/jpeg', 'image/png', 'image/gif')
        ORDER BY sort_order LIMIT 1`,
     )

@@ -4,7 +4,7 @@
 
 - Worker: `https://kelpo.mutawakkil280.workers.dev`
 - D1 database: `kelpo`, id `5b81a104-ba00-4ea6-830b-b4cd973277c6`
-- Migrations applied: `0001_initial.sql`, `0002_likes.sql`
+- Migrations applied: `0001_initial.sql`, `0002_likes.sql`, `0003_og_key.sql`
 - Cron: `*/10 * * * *`
 - Secrets set: `SESSION_SECRET`, `SUPABASE_SERVICE_KEY`
 - Vars: `APP_URL`, `PUBLIC_APP_URL=https://usekelpo.vercel.app`,
@@ -39,7 +39,10 @@ egress and 10 GB storage.
 - `/p/:slug` rewrites to `/api/p/[slug]`, which replaces the site-wide og: tags with
   the link's own title, note and thumbnail. The handler reads the slug from the URL
   because Vercel's rewrite does not populate route params.
-- The homepage carries static og: tags; its image comes from `/api/og` on the Worker.
+- The homepage carries static og: tags pointing at `/og-home.png` (a 1200×630 card in
+  `web/public`). Each delivery link gets its own 1200×630 PNG card drawn in the browser
+  at create time, stored as `og_key` and served from `/api/og/:slug`. No raw original is
+  ever used as a chat image.
 
 Deploy with `npx vercel deploy --prod`.
 

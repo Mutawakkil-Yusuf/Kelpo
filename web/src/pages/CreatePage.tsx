@@ -4,7 +4,7 @@ import LikeButton from "../components/LikeButton";
 import { api, ApiError, type PublicLink } from "../lib/api";
 import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
 import { setOwnerToken } from "../lib/session";
-import { makeThumbnail } from "../lib/thumbnails";
+import { makeOgCard, makeThumbnail } from "../lib/thumbnails";
 
 type Expiry = "24h" | "7d" | "30d";
 type Stage = "editing" | "uploading" | "done";
@@ -42,6 +42,7 @@ export default function CreatePage() {
   );
   const [copied, setCopied] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [ogCard, setOgCard] = useState<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const totalBytes = useMemo(() => files.reduce((sum, item) => sum + item.file.size, 0), [files]);
@@ -87,12 +88,18 @@ export default function CreatePage() {
         fileCount: files.length,
       });
       setOwnerToken(created.ownerToken);
+      const card = await makeOgCard(title.trim(), files.length, created.expiresAt, files[0]?.thumb ?? null);
+      setOgCard(card);
       for (let index = 0; index < files.length; index++) {
         setProgress({ index: index + 1, fraction: 0 });
         const item = files[index];
-        await api.uploadFile(created.slug, item.file, item.thumb, (fraction) => {
-          setProgress({ index: index + 1, fraction });
-        });
+        await api.uploadFile(
+          created.slug,
+          item.file,
+          item.thumb,
+          (fraction) => setProgress({ index: index + 1, fraction }),
+          index === 0 ? card : null,
+        );
       }
       const finalized = await api.finalize(created.slug);
       setResult({ url: finalized.url, expiresAt: created.expiresAt, link: finalized.link });
@@ -120,6 +127,7 @@ export default function CreatePage() {
     setHasPassword(false);
     setResult(null);
     setCopied(false);
+    setOgCard(null);
     setError("");
     setStage("editing");
   }

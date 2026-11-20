@@ -44,6 +44,7 @@ function upload(
   file: File,
   thumbnail: Blob | null,
   onProgress: (fraction: number) => void,
+  ogCard: Blob | null = null,
 ): Promise<UploadedFile> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -67,6 +68,7 @@ function upload(
     const form = new FormData();
     form.append("file", file, file.name);
     if (thumbnail) form.append("thumb", thumbnail, "preview.webp");
+    if (ogCard) form.append("og", ogCard, "og-card.png");
     xhr.send(form);
   });
 }

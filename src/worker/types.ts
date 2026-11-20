@@ -11,6 +11,7 @@ export interface LinkRow {
   password_hash: string | null;
   owner_token_hash: string;
   expected_files: number;
+  og_key: string | null;
   expires_at: number;
   created_at: number;
   status: LinkStatus;

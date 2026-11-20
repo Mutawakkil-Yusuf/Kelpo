@@ -111,6 +111,15 @@ app.post("/:slug/files", async (c) => {
     await putObject(c.env, thumbKey, thumbBytes, "image/webp");
   }
 
+  const ogPart = form.get("og");
+  if (ogPart && typeof ogPart !== "string" && (ogPart as File).size > 0) {
+    const ogKey = `${link.slug}/og-card.png`;
+    await putObject(c.env, ogKey, await (ogPart as File).arrayBuffer(), "image/png");
+    await c.env.DB.prepare("UPDATE links SET og_key = ? WHERE slug = ?")
+      .bind(ogKey, link.slug)
+      .run();
+  }
+
   await c.env.DB.prepare(
     `INSERT INTO files
        (id, link_slug, r2_key, thumb_key, name, content_type, size_bytes, width, height, sort_order, created_at)

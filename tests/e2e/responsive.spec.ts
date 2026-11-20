@@ -30,7 +30,11 @@ test("a created link shows a clickable OG preview", async ({ page }) => {
   const card = page.locator(".chat-card-link");
   await expect(card).toHaveAttribute("href", /\/p\/[A-Za-z0-9_-]+$/);
   await expect(page.locator(".og-links a").first()).toHaveAttribute("href", /\/p\//);
-  await expect(page.locator(".og-links a").last()).toHaveAttribute("href", /\/api\/og\//);
+  const ogHref = await page.locator(".og-links a").last().getAttribute("href");
+  expect(ogHref).toBeTruthy();
+  const og = await page.request.get(ogHref!);
+  expect(og.status()).toBe(200);
+  expect(og.headers()["content-type"]).toContain("image/png");
 });
 
 test("a recipient gets the prompt once, and the like popup opens", async ({ page }) => {
