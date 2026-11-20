@@ -7,6 +7,7 @@ import {
   getLink,
   HttpError,
 } from "../lib/access";
+import { record } from "../lib/events";
 import { brandCardPng } from "../lib/og-image";
 import { getObject } from "../lib/storage";
 
@@ -20,6 +21,8 @@ fileRoutes.get("/:id", async (c) => {
   await assertAccess(c, link);
 
   const preview = c.req.query("preview") === "1";
+  await record(c.env, file.link_slug, preview ? "previewed" : "downloaded");
+
   const isPreview = preview && Boolean(file.thumb_key);
   const object = await getObject(c.env, isPreview ? file.thumb_key! : file.r2_key);
   if (!object) throw new HttpError(404, "File is no longer available");

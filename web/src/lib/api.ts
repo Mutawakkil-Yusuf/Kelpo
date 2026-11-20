@@ -1,7 +1,7 @@
 import type { PublicLink } from "../../../src/worker/types";
 import { getSession } from "./auth";
 import { apiUrl } from "./config";
-import { getAccessToken, getOwnerToken } from "./session";
+import { getAccessToken, getOpenId, getOwnerToken } from "./session";
 
 export type { PublicLink };
 
@@ -26,6 +26,7 @@ async function request<T>(
   if (access) headers.set("X-Kelpo-Access", access);
   const session = getSession();
   if (session) headers.set("Authorization", `Bearer ${session}`);
+  headers.set("X-Kelpo-Session", getOpenId());
 
   const response = await fetch(apiUrl(path), { ...init, headers });
   if (!response.ok) {
@@ -86,6 +87,7 @@ export interface DashboardData {
     created_at: number;
     view_count: number;
     report_count: number;
+    opens: number;
   }>;
   brand: { accentColor: string | null; logoUrl: string | null };
 }
@@ -150,6 +152,12 @@ export const api = {
   getBrand(slug: string) {
     return request<{ accentColor: string | null; logoUrl: string | null }>(
       `/api/links/${slug}/brand`,
+    );
+  },
+
+  stats(slug: string) {
+    return request<{ opens: number; downloads: number; zips: number }>(
+      `/api/links/${slug}/stats`,
     );
   },
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Env } from "../env";
 import { assertAccess, checkRate, getLink, HttpError, type AppContext } from "../lib/access";
 import { getAccount } from "../lib/account";
+import { linkCounts } from "../lib/events";
 import { generateId, sha256Hex } from "../lib/slug";
 
 const extendSchema = z.object({ expiry: z.enum(["24h", "7d", "30d"]) });
@@ -53,6 +54,11 @@ app.post("/:slug/extend", async (c) => {
     .bind(expiresAt, link.slug)
     .run();
   return c.json({ expiresAt });
+});
+
+app.get("/:slug/stats", async (c) => {
+  const link = await assertCanManage(c, c.req.param("slug"));
+  return c.json(await linkCounts(c.env, link.slug));
 });
 
 app.get("/:slug/brand", async (c) => {

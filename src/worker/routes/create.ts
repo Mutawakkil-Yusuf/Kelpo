@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../env";
 import { assertOwner, checkRate, getLink, HttpError, publicLink } from "../lib/access";
+import { record } from "../lib/events";
 import { hashPassword } from "../lib/password";
 import { putObject } from "../lib/storage";
 import { generateId, generateOwnerToken, generateSlug, sha256Hex } from "../lib/slug";
@@ -65,6 +66,7 @@ app.post("/", async (c) => {
       now,
     )
     .run();
+  await record(c.env, slug, "created");
 
   return c.json({ slug, expiresAt, ownerToken }, 201);
 });
@@ -139,6 +141,7 @@ app.post("/:slug/files", async (c) => {
       Date.now(),
     )
     .run();
+  await record(c.env, link.slug, "uploaded");
 
   return c.json(
     { id, name: file.name, sizeBytes: file.size, contentType: sniffed.contentType },
@@ -161,6 +164,7 @@ app.post("/:slug/finalize", async (c) => {
   await c.env.DB.prepare("UPDATE links SET status = 'active' WHERE slug = ?")
     .bind(link.slug)
     .run();
+  await record(c.env, link.slug, "finalized");
 
   const fresh = await getLink(c.env, link.slug);
   const payload: PublicLink = await publicLink(c.env, fresh);

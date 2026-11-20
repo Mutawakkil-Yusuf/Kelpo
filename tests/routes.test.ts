@@ -36,6 +36,7 @@ class FakeDb {
   sessions = new Map<string, AnyRecord>();
   pins = new Map<string, AnyRecord>();
   waitlist = new Set<string>();
+  events = new Map<string, AnyRecord>();
 
   prepare(sql: string) {
     return new FakeStatement(this, sql);
@@ -55,7 +56,12 @@ class FakeDb {
     if (sql.includes("FROM accounts WHERE id")) return this.accounts.get(String(args[0])) ?? null;
     if (sql.includes("FROM sessions WHERE token_hash")) return this.sessions.get(String(args[0])) ?? null;
     if (sql.includes("FROM links WHERE account_id")) {
-      return [...this.links.values()].find((l) => l.account_id === args[0]) ?? null;
+      const link = [...this.links.values()].find((l) => l.account_id === args[0]);
+      if (!link) return null;
+      return {
+        ...link,
+        opens: [...this.events.values()].filter((e) => e.slug === link.slug && e.type === "opened").length,
+      };
     }
     if (sql.includes("SELECT report_count FROM links")) {
       return { report_count: this.links.get(String(args[0]))?.report_count ?? 0 };
@@ -78,7 +84,20 @@ class FakeDb {
       return [...this.pins.values()].filter((p) => p.link_slug === args[0]);
     }
     if (sql.includes("FROM links WHERE account_id")) {
-      return [...this.links.values()].filter((l) => l.account_id === args[0]);
+      return [...this.links.values()]
+        .filter((l) => l.account_id === args[0])
+        .map((link) => ({
+          ...link,
+          opens: [...this.events.values()].filter((e) => e.slug === link.slug && e.type === "opened").length,
+        }));
+    }
+    if (sql.includes("FROM events") && sql.includes("GROUP BY")) {
+      const counts = new Map<string, number>();
+      for (const event of this.events.values()) {
+        if (event.slug !== args[0]) continue;
+        counts.set(String(event.type), (counts.get(String(event.type)) ?? 0) + 1);
+      }
+      return [...counts.entries()].map(([type, count]) => ({ type, count }));
     }
     return [];
   }
@@ -129,6 +148,15 @@ class FakeDb {
       });
     } else if (sql.startsWith("INSERT INTO waitlist")) {
       this.waitlist.add(String(args[1]));
+    } else if (sql.startsWith("INSERT OR IGNORE INTO events")) {
+      const type = String(args[2]);
+      const session = args[3] ? String(args[3]) : null;
+      const duplicate = type === "opened" && session
+        ? [...this.events.values()].some((e) => e.slug === args[1] && e.session_id === session)
+        : false;
+      if (!duplicate) {
+        this.events.set(String(args[0]), { slug: args[1], type, session_id: session, created_at: args[4] });
+      }
     } else if (sql.includes("UPDATE links SET account_id")) {
       for (const link of this.links.values()) {
         if (link.owner_token_hash === args[1]) link.account_id = args[0];
@@ -428,9 +456,17 @@ describe("create to download flow", () => {
     const { token } = (await signup.json()) as { token: string };
     const auth = { Authorization: `Bearer ${token}` };
 
+    await app.request(`/api/links/${slug}`, { headers: { "X-Kelpo-Session": "device-one" } }, env);
+    await app.request(`/api/links/${slug}`, { headers: { "X-Kelpo-Session": "device-one" } }, env);
+    await app.request(`/api/links/${slug}`, { headers: { "X-Kelpo-Session": "device-two" } }, env);
+
+    const stats = await app.request(`/api/links/${slug}/stats`, { headers: auth }, env);
+    expect((await stats.json()) as { opens: number }).toEqual({ opens: 2, downloads: 0, zips: 0 });
+
     const me = await app.request("/api/auth/me", { headers: auth }, env);
-    const dashboard = (await me.json()) as { links: unknown[] };
+    const dashboard = (await me.json()) as { links: Array<{ opens: number }> };
     expect(dashboard.links).toHaveLength(1);
+    expect(dashboard.links[0]!.opens).toBe(2);
 
     const extended = await app.request(
       `/api/links/${slug}/extend`,

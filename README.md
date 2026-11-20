@@ -45,6 +45,11 @@ under the gallery.
 a "Sent with Kelpo" sheet shown once when a recipient opens their first file. Likes
 are one per visitor and open a short thank-you card. No payment is taken yet.
 
+**Funnel tracking** — D1 records created, uploaded, finalized, opened, downloaded,
+previewed and zipped events. Opens are deduplicated per link per browser session, so
+"opened 3 times" means three browsers rather than three refreshes. Senders see live
+counts on the result screen and in the dashboard. No analytics SDK and no third-party calls.
+
 ## Product writing
 
 Every string is chosen to be concrete and easy. See [`docs/COPY.md`](docs/COPY.md)

@@ -24,3 +24,17 @@ export const getOwnerToken = () => read(OWNER_KEY);
 export const setOwnerToken = (token: string) => write(OWNER_KEY, token);
 export const getAccessToken = (slug: string) => read(accessKey(slug));
 export const setAccessToken = (slug: string, token: string) => write(accessKey(slug), token);
+
+const SESSION_ID_KEY = "kelpo_open_id";
+
+/** One random id per tab, used only to count unique link opens. */
+export function getOpenId(): string {
+  let value = read(SESSION_ID_KEY);
+  if (!value) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    value = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    write(SESSION_ID_KEY, value);
+  }
+  return value;
+}

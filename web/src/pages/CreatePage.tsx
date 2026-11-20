@@ -1,4 +1,4 @@
-import { type CSSProperties, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import Credits from "../components/Credits";
 import LikeButton from "../components/LikeButton";
 import { api, ApiError, type PublicLink } from "../lib/api";
@@ -43,6 +43,7 @@ export default function CreatePage() {
   const [copied, setCopied] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [ogCard, setOgCard] = useState<Blob | null>(null);
+  const [stats, setStats] = useState<{ opens: number; downloads: number; zips: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const totalBytes = useMemo(() => files.reduce((sum, item) => sum + item.file.size, 0), [files]);
@@ -131,6 +132,20 @@ export default function CreatePage() {
     setError("");
     setStage("editing");
   }
+
+  useEffect(() => {
+    if (!result) return;
+    let active = true;
+    const load = () => {
+      api
+        .stats(result.link.slug)
+        .then((value) => { if (active) setStats(value); })
+        .catch(() => {});
+    };
+    load();
+    const timer = window.setInterval(load, 10_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [result]);
 
   if (stage === "uploading") {
     const fraction = progress.fraction;
@@ -249,6 +264,11 @@ export default function CreatePage() {
         <p className="mt-8 border-t border-ink/15 pt-5 text-sm text-muted">
           Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
         </p>
+        {stats && (
+          <p className="mt-3 font-mono text-xs text-muted">
+            Opened {stats.opens} {stats.opens === 1 ? "time" : "times"} · {stats.downloads} original downloads · {stats.zips} ZIP downloads
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
           <button className="text-btn" onClick={reset}>Create another delivery</button>
           <a className="text-btn" href="/dashboard">Save links to an account — optional</a>

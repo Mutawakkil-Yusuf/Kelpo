@@ -11,6 +11,7 @@ import {
   sessionSecret,
 } from "../lib/access";
 import { signAccessToken, verifyPassword } from "../lib/password";
+import { record } from "../lib/events";
 import { getObject } from "../lib/storage";
 import { safeFileName } from "../lib/validate";
 import { createZipBuilder, zipHeaders } from "../lib/zip";
@@ -29,6 +30,7 @@ app.get("/:slug", async (c) => {
   await c.env.DB.prepare("UPDATE links SET view_count = view_count + 1 WHERE slug = ?")
     .bind(link.slug)
     .run();
+  await record(c.env, link.slug, "opened", c.req.header("X-Kelpo-Session"));
 
   const payload = await publicLink(c.env, link);
   c.header("Cache-Control", "no-store");
@@ -69,6 +71,7 @@ app.get("/:slug/zip", async (c) => {
     .bind(link.slug)
     .all<FileRow>();
 
+  await record(c.env, link.slug, "zipped");
   const builder = createZipBuilder();
   let index = 0;
   for (const file of files.results) {

@@ -64,7 +64,8 @@ app.post("/login", async (c) => {
 app.get("/me", async (c) => {
   const account = await getAccount(c);
   const links = await c.env.DB.prepare(
-    `SELECT slug, title, status, expires_at, created_at, view_count, report_count
+    `SELECT slug, title, status, expires_at, created_at, view_count, report_count,
+       (SELECT COUNT(*) FROM events WHERE events.slug = links.slug AND events.type = 'opened') AS opens
        FROM links WHERE account_id = ? ORDER BY created_at DESC LIMIT 100`,
   )
     .bind(account.id)
@@ -76,6 +77,7 @@ app.get("/me", async (c) => {
       created_at: number;
       view_count: number;
       report_count: number;
+      opens: number;
     }>();
 
   const brand = await c.env.DB.prepare(

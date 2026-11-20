@@ -57,6 +57,8 @@ and are still verified at their original cost.
 - `files` — id, link FK, Supabase Storage key, optional thumbnail key, original name, sniffed MIME,
   size, image dimensions, sort order.
 - `rate_events` — IP hash + action + timestamp.
+- `events` — funnel events (created, uploaded, finalized, opened, downloaded,
+  previewed, zipped). Open events are unique per link per browser session.
 - `reports` — link FK, reason, IP hash.
 
 ## API surface

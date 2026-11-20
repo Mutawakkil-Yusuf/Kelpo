@@ -197,7 +197,7 @@ export default function DashboardPage() {
                   <div className="min-w-0">
                     <p className="truncate font-display text-xl">{link.title}</p>
                     <p className="mt-1 font-mono text-xs text-muted">
-                      {link.status} · {link.view_count} views · ends {formatExpiry(link.expires_at)}
+                      {link.status} · opened {link.opens} times · {link.view_count} page loads · ends {formatExpiry(link.expires_at)}
                     </p>
                   </div>
                   <a className="text-btn" href={`/p/${link.slug}`} target="_blank" rel="noreferrer">
