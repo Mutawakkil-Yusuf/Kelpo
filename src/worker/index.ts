@@ -34,7 +34,13 @@ app.use(
       if (match === "*" || match.startsWith("*.")) return origin;
       return match;
     },
-    allowHeaders: ["Content-Type", "Authorization", "X-Kelpo-Owner", "X-Kelpo-Access"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Kelpo-Owner",
+      "X-Kelpo-Access",
+      "X-Kelpo-Session",
+    ],
     allowMethods: ["GET", "POST", "OPTIONS"],
     maxAge: 600,
   }),

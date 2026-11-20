@@ -47,6 +47,7 @@ test("a created link shows a clickable OG preview", async ({ page }) => {
   const og = await page.request.get(ogHref!);
   expect(og.status()).toBe(200);
   expect(og.headers()["content-type"]).toContain("image/png");
+  await expect(page.getByText(/Opened \d+ times?/)).toBeVisible();
 });
 
 test("a recipient can leave a note without an account", async ({ page }) => {
