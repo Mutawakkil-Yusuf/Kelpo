@@ -7,6 +7,7 @@ import { getLink, HttpError } from "./lib/access";
 import { purgeExpired } from "./lib/cleanup";
 import createRoutes from "./routes/create";
 import { fileRoutes, ogRoutes } from "./routes/file";
+import likeRoutes from "./routes/like";
 import linkRoutes from "./routes/link";
 import reportRoutes from "./routes/report";
 
@@ -81,6 +82,7 @@ app.get("/api/og-meta/:slug", async (c) => {
 app.route("/api/links", createRoutes);
 app.route("/api/links", linkRoutes);
 app.route("/api/links", reportRoutes);
+app.route("/api/like", likeRoutes);
 app.route("/api/files", fileRoutes);
 app.route("/api/og", ogRoutes);
 

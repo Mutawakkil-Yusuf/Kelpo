@@ -42,7 +42,10 @@ Scope and phases: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - Chat card preview before sending, with OG title/description/thumbnail
 - Client gallery, fullscreen viewer, per-file download, download all as ZIP
 - Password gate with signed tokens, expiry checks on every request, rate limits, reports
-- Cron purge of R2 objects and D1 rows at expiry
+- Cron purge of expired files and rows at expiry
+- Recipient prompt on first file open: "Sent with Kelpo" with a create-link action
+- One like per visitor with a short thank-you popup
+- Credit line on every screen: By Mutawakkil, with Instagram, X and GitHub links
 
 ## Deploy
 
@@ -72,7 +75,9 @@ Scope and phases: [`docs/ROADMAP.md`](docs/ROADMAP.md).
    Leave `VITE_API_URL` unset so Vite proxies `/api` to the Worker.
 6. Trigger cleanup locally: `curl "http://localhost:8787/cdn-cgi/local/scheduled"`
 
-Checks: `pnpm typecheck`, `pnpm build`, `pnpm test`.
+Checks: `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm test:e2e` (Playwright,
+mobile 390×844 and desktop; set `PLAYWRIGHT_BASE_URL` and `LINK_SLUG` to test another
+environment).
 
 ## Layout
 

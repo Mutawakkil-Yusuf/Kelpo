@@ -8,6 +8,8 @@ web/dist/
 .env
 .env.local
 supabase/.temp/
+test-results/
+playwright-report/
 .vercel
 .env*
 !.env.example

@@ -1,4 +1,7 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import Credits from "../components/Credits";
+import LikeButton from "../components/LikeButton";
+import TryKelpoPrompt from "../components/TryKelpoPrompt";
 import { api, ApiError, type PublicLink } from "../lib/api";
 import { downloadUrl, formatBytes, formatExpiry, previewUrl, timeLeft, zipUrl } from "../lib/format";
 import { setAccessToken } from "../lib/session";
@@ -24,6 +27,7 @@ export default function LinkPage({ slug }: { slug: string }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("other");
   const [reportSent, setReportSent] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
 
   async function load() {
     setPhase("loading");
@@ -97,6 +101,18 @@ export default function LinkPage({ slug }: { slug: string }) {
     }
   }
 
+  function openViewer(index: number) {
+    setViewer(index);
+    try {
+      if (!sessionStorage.getItem("kelpo_seen_prompt")) {
+        sessionStorage.setItem("kelpo_seen_prompt", "1");
+        window.setTimeout(() => setPromptOpen(true), 500);
+      }
+    } catch {
+      // Storage can be blocked; the prompt just won't show again this session.
+    }
+  }
+
   if (phase === "loading") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-xl items-center px-5">
@@ -113,6 +129,10 @@ export default function LinkPage({ slug }: { slug: string }) {
         <p className="mt-4 text-sm leading-relaxed text-muted">
           The files were deleted when it ended. Ask the sender for a fresh one.
         </p>
+        <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <Credits />
+          <LikeButton />
+        </footer>
       </main>
     );
   }
@@ -123,6 +143,10 @@ export default function LinkPage({ slug }: { slug: string }) {
         <Seal />
         <h1 className="mt-10 font-display text-4xl tracking-tight">This delivery could not be opened.</h1>
         <button className="primary-btn mt-8" onClick={() => void load()}>Try again</button>
+        <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <Credits />
+          <LikeButton />
+        </footer>
       </main>
     );
   }
@@ -147,6 +171,10 @@ export default function LinkPage({ slug }: { slug: string }) {
           {error && <p className="mt-3 text-sm text-signal">{error}</p>}
           <button className="primary-btn mt-4 w-full" onClick={() => void unlock()}>Open delivery</button>
         </div>
+        <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <Credits />
+          <LikeButton />
+        </footer>
       </main>
     );
   }
@@ -157,16 +185,16 @@ export default function LinkPage({ slug }: { slug: string }) {
 
   return (
     <main className="mx-auto min-h-dvh max-w-3xl px-5 py-8 sm:py-12">
-      <header className="flex items-center justify-between border-b border-ink pb-4">
-        <span className="font-display text-2xl">Kelpo</span>
-        <span className="font-mono text-xs uppercase tracking-widest text-muted">
+      <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
+        <span className="shrink-0 font-display text-2xl">Kelpo</span>
+        <span className="hidden text-right font-mono text-[10px] uppercase leading-tight tracking-widest text-muted sm:block sm:text-xs">
           Delivered at original quality
         </span>
       </header>
 
-      <section className="mt-10 flex items-start justify-between gap-6">
-        <div>
-          <h1 className="font-display text-4xl leading-tight tracking-tight sm:text-5xl">{link.title}</h1>
+      <section className="mt-10 flex items-start justify-between gap-4 sm:gap-6">
+        <div className="min-w-0">
+          <h1 className="break-words font-display text-3xl leading-tight tracking-tight sm:text-5xl">{link.title}</h1>
           {link.message && <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">{link.message}</p>}
           <p className="mt-3 font-mono text-xs text-muted">
             {link.files.length} {link.files.length === 1 ? "file" : "files"} · original quality
@@ -174,11 +202,13 @@ export default function LinkPage({ slug }: { slug: string }) {
         </div>
         <div className="shrink-0 text-right">
           <div
-            className="ring-drain ml-auto h-12 w-12 rounded-full"
+            className="ring-drain ml-auto h-10 w-10 rounded-full sm:h-12 sm:w-12"
             style={{ "--drain-duration": `${ringDuration}s` } as CSSProperties}
             aria-hidden="true"
           />
-          <p className="mt-2 font-mono text-xs text-muted">{timeLeft(link.expiresAt)}</p>
+          <p className="mt-2 whitespace-nowrap font-mono text-[11px] text-muted">
+            {timeLeft(link.expiresAt)}
+          </p>
         </div>
       </section>
 
@@ -196,7 +226,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             <button
               type="button"
               className="frame-button"
-              onClick={() => setViewer(index)}
+              onClick={() => openViewer(index)}
               aria-label={`View ${file.name}`}
             >
               {file.contentType.startsWith("image/") ? (
@@ -237,8 +267,8 @@ export default function LinkPage({ slug }: { slug: string }) {
       </div>
 
       <footer className="mt-14 border-t border-ink/15 pt-5">
-        <div className="flex items-center gap-2 font-mono text-xs text-muted">
-          <Seal small />
+        <div className="flex items-start gap-2 font-mono text-xs text-muted">
+          <span className="mt-0.5 shrink-0"><Seal small /></span>
           <span>Delivered at original quality · Kelpo · ends {formatExpiry(link.expiresAt)}</span>
         </div>
         <div className="mt-4 font-mono text-xs text-muted">
@@ -264,12 +294,16 @@ export default function LinkPage({ slug }: { slug: string }) {
             </button>
           )}
         </div>
+        <div className="mt-5 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <Credits />
+          <LikeButton />
+        </div>
       </footer>
 
       {current && viewer !== null && (
         <div className="viewer" role="dialog" aria-modal="true" onClick={() => setViewer(null)}>
           <div className="viewer-bar" onClick={(event) => event.stopPropagation()}>
-            <span className="truncate text-sm">{current.name}</span>
+            <span className="min-w-0 truncate text-xs sm:text-sm">{current.name}</span>
             <div className="flex items-center gap-4">
               <a className="underline underline-offset-2 text-sm" href={downloadUrl(current.id, slug)}>
                 Download original
@@ -316,6 +350,8 @@ export default function LinkPage({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      <TryKelpoPrompt open={promptOpen} onClose={() => setPromptOpen(false)} />
     </main>
   );
 }

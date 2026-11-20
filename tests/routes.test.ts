@@ -31,6 +31,7 @@ class FakeStatement {
 class FakeDb {
   links = new Map<string, AnyRecord>();
   files = new Map<string, AnyRecord>();
+  likes = new Set<string>();
 
   prepare(sql: string) {
     return new FakeStatement(this, sql);
@@ -43,6 +44,7 @@ class FakeDb {
       return { count: [...this.files.values()].filter((f) => f.link_slug === args[0]).length };
     }
     if (sql.includes("COUNT(*) AS count FROM rate_events")) return { count: 0 };
+    if (sql.includes("COUNT(*) AS count FROM likes")) return { count: this.likes.size };
     if (sql.includes("SELECT report_count FROM links")) {
       return { report_count: this.links.get(String(args[0]))?.report_count ?? 0 };
     }
@@ -93,6 +95,8 @@ class FakeDb {
         sort_order: args[9],
         created_at: args[10],
       });
+    } else if (sql.startsWith("INSERT OR IGNORE INTO likes")) {
+      this.likes.add(String(args[0]));
     } else if (sql.includes("UPDATE links SET status = 'active'")) {
       const link = this.links.get(String(args[0]));
       if (link) link.status = "active";
@@ -334,5 +338,15 @@ describe("create to download flow", () => {
 
     const viaQuery = await app.request(`/api/links/${slug}?access=${accessToken}`, {}, env);
     expect(viaQuery.status).toBe(200);
+  });
+
+  it("counts one like per visitor", async () => {
+    const env = makeEnv();
+    const first = await app.request("/api/like", { method: "POST" }, env);
+    expect((await first.json()) as { count: number }).toEqual({ count: 1 });
+    const again = await app.request("/api/like", { method: "POST" }, env);
+    expect((await again.json()) as { count: number }).toEqual({ count: 1 });
+    const listed = await app.request("/api/like", {}, env);
+    expect((await listed.json()) as { count: number }).toEqual({ count: 1 });
   });
 });

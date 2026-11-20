@@ -3,7 +3,8 @@
 ## Cloudflare — deployed
 
 - Worker: `https://kelpo.mutawakkil280.workers.dev`
-- D1 database: `kelpo`, id `5b81a104-ba00-4ea6-830b-b4cd973277c6`, schema applied
+- D1 database: `kelpo`, id `5b81a104-ba00-4ea6-830b-b4cd973277c6`
+- Migrations applied: `0001_initial.sql`, `0002_likes.sql`
 - Cron: `*/10 * * * *`
 - Secrets set: `SESSION_SECRET`, `SUPABASE_SERVICE_KEY`
 - Vars: `APP_URL`, `PUBLIC_APP_URL=https://usekelpo.vercel.app`,

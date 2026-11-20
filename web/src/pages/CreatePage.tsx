@@ -1,4 +1,6 @@
 import { type CSSProperties, useMemo, useRef, useState } from "react";
+import Credits from "../components/Credits";
+import LikeButton from "../components/LikeButton";
 import { api, ApiError, type PublicLink } from "../lib/api";
 import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
 import { setOwnerToken } from "../lib/session";
@@ -214,24 +216,28 @@ export default function CreatePage() {
           Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
         </p>
         <button className="text-btn mt-4" onClick={reset}>Create another delivery</button>
+        <footer className="mt-10 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <Credits />
+          <LikeButton />
+        </footer>
       </main>
     );
   }
 
   return (
     <main className="mx-auto min-h-dvh max-w-xl px-5 py-8 sm:py-12">
-      <header className="flex items-center justify-between border-b border-ink pb-4">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
+        <div className="flex shrink-0 items-center gap-3">
           <Seal />
           <span className="font-display text-2xl">Kelpo</span>
         </div>
-        <span className="font-mono text-xs uppercase tracking-widest text-muted">
+        <span className="hidden text-right font-mono text-[10px] uppercase leading-tight tracking-widest text-muted sm:block sm:text-xs">
           Original quality, delivered
         </span>
       </header>
 
       <section className="settle-in mt-12">
-        <h1 className="font-display text-5xl leading-[1.02] tracking-tight sm:text-6xl">
+        <h1 className="font-display text-[2.6rem] leading-[1.03] tracking-tight sm:text-5xl lg:text-6xl">
           Your work arrives
           <br />
           exactly as you made it.
@@ -369,6 +375,10 @@ export default function CreatePage() {
       <p className="mt-4 text-center font-mono text-xs text-muted">
         No account. No app. No compression.
       </p>
+      <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <Credits />
+        <LikeButton />
+      </footer>
     </main>
   );
 }

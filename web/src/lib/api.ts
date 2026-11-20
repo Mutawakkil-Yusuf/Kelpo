@@ -111,6 +111,14 @@ export const api = {
     );
   },
 
+  getLikes() {
+    return request<{ count: number }>("/api/like");
+  },
+
+  like() {
+    return request<{ count: number }>("/api/like", { method: "POST" });
+  },
+
   report(slug: string, reason: string) {
     return request<{ ok: boolean }>(
       `/api/links/${slug}/report`,
