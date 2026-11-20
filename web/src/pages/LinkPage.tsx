@@ -1,6 +1,7 @@
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { api, ApiError, type PublicLink } from "../lib/api";
-import { downloadUrl, formatBytes, formatExpiry, previewUrl, timeLeft } from "../lib/format";
+import { downloadUrl, formatBytes, formatExpiry, previewUrl, timeLeft, zipUrl } from "../lib/format";
+import { setAccessToken } from "../lib/session";
 
 type Phase = "loading" | "locked" | "ready" | "gone" | "error";
 
@@ -79,7 +80,8 @@ export default function LinkPage({ slug }: { slug: string }) {
   async function unlock() {
     setError("");
     try {
-      await api.unlock(slug, password);
+      const unlocked = await api.unlock(slug, password);
+      setAccessToken(slug, unlocked.accessToken);
       await load();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : "Could not open the delivery.");
@@ -200,7 +202,7 @@ export default function LinkPage({ slug }: { slug: string }) {
               {file.contentType.startsWith("image/") ? (
                 <img
                   className="h-full w-full object-cover"
-                  src={previewUrl(file.id)}
+                  src={previewUrl(file.id, slug)}
                   alt={file.name}
                   loading="lazy"
                 />
@@ -216,7 +218,7 @@ export default function LinkPage({ slug }: { slug: string }) {
               <p className="truncate text-xs">{file.name}</p>
               <div className="mt-1 flex items-center justify-between gap-2">
                 <span className="font-mono text-[11px] text-muted">{formatBytes(file.sizeBytes)}</span>
-                <a className="text-[11px] underline underline-offset-2" href={downloadUrl(file.id)}>
+                <a className="text-[11px] underline underline-offset-2" href={downloadUrl(file.id, slug)}>
                   Download original
                 </a>
               </div>
@@ -226,7 +228,7 @@ export default function LinkPage({ slug }: { slug: string }) {
       </section>
 
       <div className="mt-8 border-t border-ink pt-6">
-        <a className="primary-btn block text-center" href={`/api/links/${encodeURIComponent(slug)}/zip`}>
+        <a className="primary-btn block text-center" href={zipUrl(slug)}>
           Download all originals (.zip)
         </a>
         <p className="mt-3 text-center font-mono text-xs text-muted">
@@ -269,7 +271,7 @@ export default function LinkPage({ slug }: { slug: string }) {
           <div className="viewer-bar" onClick={(event) => event.stopPropagation()}>
             <span className="truncate text-sm">{current.name}</span>
             <div className="flex items-center gap-4">
-              <a className="underline underline-offset-2 text-sm" href={downloadUrl(current.id)}>
+              <a className="underline underline-offset-2 text-sm" href={downloadUrl(current.id, slug)}>
                 Download original
               </a>
               <button onClick={() => setViewer(null)}>Close</button>
@@ -288,7 +290,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             {current.contentType.startsWith("image/") ? (
               <img
                 className="viewer-image"
-                src={previewUrl(current.id)}
+                src={previewUrl(current.id, slug)}
                 alt={current.name}
                 onClick={(event) => event.stopPropagation()}
               />
@@ -296,7 +298,7 @@ export default function LinkPage({ slug }: { slug: string }) {
               <div className="viewer-pdf" onClick={(event) => event.stopPropagation()}>
                 <span className="font-display text-6xl text-signal">PDF</span>
                 <p className="mt-4 text-sm">{current.name}</p>
-                <a className="primary-btn mt-6" href={downloadUrl(current.id)}>Download original</a>
+                <a className="primary-btn mt-6" href={downloadUrl(current.id, slug)}>Download original</a>
               </div>
             )}
             {link.files.length > 1 && (

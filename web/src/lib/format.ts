@@ -1,3 +1,12 @@
+import { apiUrl } from "./config";
+import { getAccessToken } from "./session";
+
+function withAccess(path: string, slug: string): string {
+  const token = getAccessToken(slug);
+  const separator = path.includes("?") ? "&" : "?";
+  return token ? `${path}${separator}access=${encodeURIComponent(token)}` : path;
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -24,10 +33,19 @@ export function timeLeft(timestamp: number): string {
   return `${mins}m left`;
 }
 
-export function previewUrl(id: string): string {
-  return `/api/files/${encodeURIComponent(id)}?preview=1`;
+/** Chat-card thumbnail: public, works even for sealed deliveries. */
+export function ogUrl(slug: string): string {
+  return apiUrl(`/api/og/${encodeURIComponent(slug)}`);
 }
 
-export function downloadUrl(id: string): string {
-  return `/api/files/${encodeURIComponent(id)}`;
+export function previewUrl(id: string, slug: string): string {
+  return apiUrl(withAccess(`/api/files/${encodeURIComponent(id)}?preview=1`, slug));
+}
+
+export function downloadUrl(id: string, slug: string): string {
+  return apiUrl(withAccess(`/api/files/${encodeURIComponent(id)}`, slug));
+}
+
+export function zipUrl(slug: string): string {
+  return apiUrl(withAccess(`/api/links/${encodeURIComponent(slug)}/zip`, slug));
 }

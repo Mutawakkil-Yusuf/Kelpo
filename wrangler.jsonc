@@ -4,13 +4,6 @@
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-11-20",
 
-  // Built Vite SPA. Worker handles API/OG/pages; everything else is static.
-  "assets": {
-    "directory": "./web/dist",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/p/*"]
-  },
-
   // Locally emulated by wrangler dev. For production, replace database_id
   // with the real D1 database id from `wrangler d1 create kelpo`, and create
   // the bucket with `wrangler r2 bucket create kelpo-files`.
@@ -21,10 +14,12 @@
     { "binding": "FILES", "bucket_name": "kelpo-files" }
   ],
 
-  // Exact-expiry cleanup; see src/worker/lib/cleanup.ts (stub).
+  // Exact-expiry cleanup; see src/worker/lib/cleanup.ts.
   "triggers": { "crons": ["*/10 * * * *"] },
 
   "vars": {
-    "APP_URL": "http://localhost:8787"
+    "APP_URL": "http://localhost:8787",
+    "PUBLIC_APP_URL": "http://localhost:5173",
+    "ALLOWED_ORIGIN": "http://localhost:5173"
   }
 }

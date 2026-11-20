@@ -1,103 +1,103 @@
-# Kelpo — architecture (plan, not yet implemented)
+# Kelpo — architecture (implemented)
 
-This document describes the intended MVP design. The scaffold in this repo contains
-types, config, schema and stubs — no feature logic yet.
-
-## System shape
+## Two origins, one flow
 
 ```
-Sender phone                 Client phone (WhatsApp / Instagram / email)
-   |                                        |
-   | create link + upload                    | open /p/<slug>
-   v                                        v
-+---------------------------------------------------------------+
-|  Cloudflare Worker (Hono)                                     |
-|                                                               |
-|  /p/:slug        -> HTML shell + per-link OG meta (crawlers)  |
-|  /api/*          -> JSON API (create, unlock, files, zip...)   |
-|  /api/files/:id  -> stream original from R2, expiry-checked   |
-|  scheduled()     -> purge expired links + R2 objects           |
-|  static assets   -> built Vite SPA                            |
-+---------------------------------------------------------------+
-        |                    |
-        v                    v
-   D1 (metadata)        R2 (originals, private, prefix links/<slug>/)
+Client phone                                    Sender phone
+   |                                                  |
+   | https://kelpo.vercel.app/p/<slug>                 | https://kelpo.vercel.app/
+   v                                                  v
++--------------------------- Vercel --------------------------------+
+|  api/p/[slug].ts          edge function: fetches public meta from |
+|                           the Worker and writes og: tags into the|
+|                           SPA shell. One share URL for chat apps. |
+|  web/dist                 built Vite + React app                  |
++---------------------------+--------------------------------------+
+                            | fetch /api/* (CORS)
+                            v
++--------------------------- Cloudflare --------------------------------+
+|  Worker (Hono)                                                        |
+|    /api/links             create, upload one file, finalize            |
+|    /api/links/:slug       open, unlock, ZIP                            |
+|    /api/files/:id         preview / original download from R2          |
+|    /api/og/:slug          thumbnail for chat crawlers                 |
+|    /api/og-meta/:slug     public title/count/thumbnail id for Vercel   |
+|    scheduled()            delete expired objects and rows              |
++-----------------------------------------------------------------------+
+        |                          |
+        v                          v
+   D1 (metadata)             R2 (originals, private)
 ```
 
-All access to R2 goes through the Worker. The bucket is never public, so expiry and
-password checks are enforced on every download, not only after the cron runs.
+The bucket is never public. Expiry and password checks happen on every request, so
+cleanup lag cannot expose a file.
 
-## Data model (see `migrations/0001_initial.sql`)
+## Why tokens, not cookies
 
-- `links` — `slug` (capability token), title, message, optional password salt/hash,
-  owner token hash, `expires_at`, status, view/report counters.
-- `files` — id, link FK, `r2_key`, original name, MIME type, size, image dimensions,
-  sort order.
-- `rate_events` — IP hash + action + timestamp; sliding-window abuse checks.
+`vercel.app` and `workers.dev` are different sites. `SameSite=Lax` cookies are not sent
+on cross-site fetch/XHR, and `SameSite=None` depends on third-party cookies that Safari
+blocks. So:
+
+- **Owner token**: random secret returned from create, kept in tab `sessionStorage`,
+  sent as `X-Kelpo-Owner`. Server stores only its SHA-256 digest.
+- **Access token**: HMAC-signed expiry token returned from unlock, sent as
+  `X-Kelpo-Access`. For `<img>` and `<a>` — which cannot set headers — it is appended as
+  `?access=<token>`. The client page sends `Referrer-Policy: no-referrer`.
+
+CORS allows exact origins from `ALLOWED_ORIGIN` plus `*.vercel.app` preview URLs, with
+`X-Kelpo-Owner` and `X-Kelpo-Access` in `Access-Control-Allow-Headers`.
+
+## Data model (migrations/0001_initial.sql)
+
+- `links` — slug, title, message, password salt/hash, owner token hash, expected file
+  count, expires_at, status, view/report counters.
+- `files` — id, link FK, R2 key, optional thumbnail key, original name, sniffed MIME,
+  size, image dimensions, sort order.
+- `rate_events` — IP hash + action + timestamp.
 - `reports` — link FK, reason, IP hash.
 
-Slug is a random, URL-safe token (≥16 chars, base58/hex). Knowing it is the primary
-capability; the optional password is a second factor. The owner token is a random
-secret returned only at create time and stored hashed, so later phases can add revoke
-/ extend without accounts.
-
-## API surface (planned)
+## API surface
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/links` | Create link metadata. Body: title, message, expiry, password flag. Returns slug + owner token. |
-| `POST` | `/api/links/:slug/files` | Upload one file (multipart, ≤25 MB). Streams to R2 under the link prefix. Validates type by magic bytes. |
-| `POST` | `/api/links/:slug/finalize` | Verify all expected objects exist, activate link, compute thumbnail. |
-| `GET` | `/api/links/:slug` | Link meta + file list. Requires password session when protected. |
-| `POST` | `/api/links/:slug/unlock` | Verify password (PBKDF2), set short-lived signed access cookie. |
-| `GET` | `/api/files/:id` | Stream original with `Content-Disposition: attachment`. Checks expiry + access. |
-| `GET` | `/api/links/:slug/zip` | Stream all originals as a ZIP (STORE, no re-compression). |
-| `GET` | `/api/og/:slug` | Thumbnail for `og:image` (first image, or static branded fallback). |
-| `POST` | `/api/links/:slug/report` | Record an abuse report; disable link after a threshold. |
-| `GET` | `/p/:slug` | HTML shell with link-specific OG tags for chat crawlers; boots the SPA. |
+| `POST` | `/api/links` | Create draft. Returns slug, expiry, owner token. |
+| `POST` | `/api/links/:slug/files` | Upload one file (≤25 MB) with optional WebP preview. `X-Kelpo-Owner` required. |
+| `POST` | `/api/links/:slug/finalize` | Activate the link; returns the Vercel share URL. |
+| `GET` | `/api/links/:slug` | Public file list. Requires `X-Kelpo-Access` when sealed. |
+| `POST` | `/api/links/:slug/unlock` | Verify password; return signed access token. |
+| `GET` | `/api/files/:id` | Stream original (`attachment`) or light preview (`preview=1`). |
+| `GET` | `/api/links/:slug/zip` | Stream all originals as a STORE-mode ZIP. |
+| `GET` | `/api/og/:slug` | Public thumbnail card for chat crawlers. |
+| `GET` | `/api/og-meta/:slug` | Title, note, file count, thumbnail id for the Vercel OG route. |
+| `POST` | `/api/links/:slug/report` | Rate-limited abuse report; 3 reports disable the link. |
 
 ## Flows
 
-### Create (sender, mobile)
-1. Pick up to 15 files; client checks extension/size locally before upload.
-2. POST metadata → receive slug + owner token (stored in a cookie).
-3. Upload files one by one; each is sniffed and streamed to R2.
-4. Finalize → link becomes active; share URL `APP_URL/p/<slug>`.
+**Create.** Pick files → client makes light WebP previews → create draft → upload one
+file per request → finalize → result shows the exact chat card plus copy, WhatsApp,
+email and share actions.
 
-### View & download (client)
-1. WhatsApp/Instagram crawler fetches `/p/:slug` → sees og:title, og:description,
-   og:image from the Worker. Link text passes through every chat app.
-2. Phone opens URL → SPA fetches `/api/links/:slug`.
-3. If password-protected, show unlock screen; success sets a signed cookie.
-4. Gallery renders images/PDFs; fullscreen viewer; per-file and "download all (ZIP)".
-5. Every file request re-checks `expires_at` and access before streaming from R2.
+**View.** Crawler hits `/p/:slug` on Vercel and sees title/note/thumbnail tags from the
+edge function. The phone loads the SPA, which fetches the file list from the Worker.
+Sealed deliveries show a gate; unlock returns a token. The gallery loads previews only;
+originals are fetched on download or fullscreen.
 
-### Expiry
-- Cron runs every 10 minutes: select active links where `expires_at < now`, delete
-  their R2 objects, then delete rows (FK cascade handles files/reports).
-- Worker also denies access immediately after `expires_at`, so cleanup lag is harmless.
-- There is no R2 lifecycle rule: keys are `links/<slug>/...` for every expiry, so
-  exact per-link deletion is done by cron.
+**Expiry.** Every request checks `expires_at` and refuses after it. Cron runs every 10
+minutes, deletes each expired link's R2 objects by prefix, then deletes the row (FK
+cascade removes files and reports).
 
 ## Abuse controls
-- Allowlist by extension **and** sniffed MIME (JPG, PNG, WebP, GIF, PDF only).
-- Reject SVG outright (script risk) and anything over 25 MB / 15 files.
-- Sliding-window rate limits per IP hash for create, password failures, and reports.
-- Report endpoint; threshold disables a link (sets status, drops it from lookups).
 
-## Key risks / open questions
-- **ZIP on free Workers CPU:** STORE avoids compression cost, but a 375 MB ZIP may
-  still stress the 10 ms budget. If so: generate the ZIP client-side with `fflate`
-  reading from signed per-file URLs, or generate once at finalize time.
-- **Magic-byte sniffing** of WebP/GIF/PDF needs a small, tested detector; PDFs can
-  claim many MIME types. Keep the detector isolated in `lib/validate.ts`.
-- **Password UX** on a phone: keep the unlock form minimal and remember the signed
-  cookie for the link's lifetime.
-- **OG images** must be publicly fetchable by chat crawlers (no cookie); serve from a
-  dedicated `/api/og/:slug` route with a plain image response.
-- **Nigerian mobile data:** serve thumbnails for the gallery and only fetch originals
-  on download/fullscreen; keep the SPA bundle small.
+Allowlist by extension and sniffed magic bytes (JPG, PNG, WebP, GIF, PDF), SVG rejected,
+25 MB and 15-file caps, sliding-window rate limits per IP hash for create/upload/
+password failures/reports, and a report button that disables a link at 3 reports.
 
-## Local development
-`wrangler dev` emulates D1, R2 and cron locally. Run Vite for HMR and proxy `/api` to
-the Worker, or build the SPA and let the Worker serve `web/dist`. See README.
+## Risks and limits
+
+- Workers Free gives 10 ms CPU per invocation. ZIPs use STORE with streamed entries;
+  a full 15 × 25 MB set may need client-side zipping or a paid Worker if it hits the cap.
+- `?access=` tokens appear in URLs. They are scoped to one link, expire with it, and the
+  client sends `Referrer-Policy: no-referrer`.
+- The Vercel OG edge function fetches `/index.html` from its own origin and the metadata
+  from the Worker. If the Worker is down, the card falls back to generic copy.
+- Node 22.12+ is needed for Wrangler 4; `.nvmrc` pins 22.

@@ -146,13 +146,9 @@ function makeEnv() {
   return {
     DB: new FakeDb(),
     FILES: new FakeBucket(),
-    ASSETS: {
-      fetch: async () =>
-        new Response("<!doctype html><html><head><title>Kelpo</title></head><body></body></html>", {
-          headers: { "Content-Type": "text/html" },
-        }),
-    },
     APP_URL: "http://localhost:8787",
+    PUBLIC_APP_URL: "http://localhost:5173",
+    ALLOWED_ORIGIN: "http://localhost:5173,*.vercel.app",
     SESSION_SECRET: "test-secret",
   } as unknown as Env;
 }
@@ -185,14 +181,14 @@ describe("create to download flow", () => {
       env,
     );
     expect(created.status).toBe(201);
-    const { slug } = (await created.json()) as { slug: string };
-    const cookie = created.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+    const { slug, ownerToken } = (await created.json()) as { slug: string; ownerToken: string };
+    const ownerHeaders = { "X-Kelpo-Owner": ownerToken };
 
     const form = new FormData();
     form.append("file", new Blob([pngBytes()], { type: "image/png" }), "cover.png");
     const uploaded = await app.request(
       `/api/links/${slug}/files`,
-      { method: "POST", headers: { Cookie: cookie }, body: form },
+      { method: "POST", headers: ownerHeaders, body: form },
       env,
     );
     expect(uploaded.status).toBe(201);
@@ -200,12 +196,12 @@ describe("create to download flow", () => {
 
     const finalized = await app.request(
       `/api/links/${slug}/finalize`,
-      { method: "POST", headers: { Cookie: cookie } },
+      { method: "POST", headers: ownerHeaders },
       env,
     );
     expect(finalized.status).toBe(200);
     const finalizedBody = (await finalized.json()) as { url: string; link: { files: unknown[] } };
-    expect(finalizedBody.url).toBe(`http://localhost:8787/p/${slug}`);
+    expect(finalizedBody.url).toBe(`http://localhost:5173/p/${slug}`);
     expect(finalizedBody.link.files).toHaveLength(1);
 
     const listing = await app.request(`/api/links/${slug}`, {}, env);
@@ -226,11 +222,33 @@ describe("create to download flow", () => {
     expect(zip.status).toBe(200);
     expect(zip.headers.get("Content-Type")).toBe("application/zip");
 
-    const ogPage = await app.request(`/p/${slug}`, {}, env);
-    const html = await ogPage.text();
-    expect(html).toContain('og:title');
-    expect(html).toContain('Brand refresh');
-    expect(html).toContain(`/api/og/${slug}`);
+    const meta = await app.request(`/api/og-meta/${slug}`, {}, env);
+    expect(meta.status).toBe(200);
+    const metaBody = (await meta.json()) as {
+      title: string;
+      fileCount: number;
+      thumbnailId: string | null;
+    };
+    expect(metaBody.title).toBe("Brand refresh — final files");
+    expect(metaBody.fileCount).toBe(1);
+    expect(metaBody.thumbnailId).toBe(id);
+
+    const preflight = await app.request(
+      "/api/links",
+      {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://kelpo-git-main.vercel.app",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "content-type,x-kelpo-owner",
+        },
+      },
+      env,
+    );
+    expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://kelpo-git-main.vercel.app",
+    );
+    expect(preflight.headers.get("Access-Control-Allow-Headers")).toContain("X-Kelpo-Owner");
   });
 
   it("keeps password-protected deliveries closed until unlocked", async () => {
@@ -250,13 +268,13 @@ describe("create to download flow", () => {
       },
       env,
     );
-    const { slug } = (await created.json()) as { slug: string };
-    const cookie = created.headers.get("Set-Cookie")?.split(";")[0] ?? "";
+    const { slug, ownerToken } = (await created.json()) as { slug: string; ownerToken: string };
+    const ownerHeaders = { "X-Kelpo-Owner": ownerToken };
 
     const form = new FormData();
     form.append("file", new Blob([pngBytes()], { type: "image/png" }), "cover.png");
-    await app.request(`/api/links/${slug}/files`, { method: "POST", headers: { Cookie: cookie }, body: form }, env);
-    await app.request(`/api/links/${slug}/finalize`, { method: "POST", headers: { Cookie: cookie } }, env);
+    await app.request(`/api/links/${slug}/files`, { method: "POST", headers: ownerHeaders, body: form }, env);
+    await app.request(`/api/links/${slug}/finalize`, { method: "POST", headers: ownerHeaders }, env);
 
     expect((await app.request(`/api/links/${slug}`, {}, env)).status).toBe(401);
     const wrong = await app.request(
@@ -280,8 +298,15 @@ describe("create to download flow", () => {
       env,
     );
     expect(right.status).toBe(200);
-    const access = right.headers.get("Set-Cookie")?.split(";")[0] ?? "";
-    const opened = await app.request(`/api/links/${slug}`, { headers: { Cookie: access } }, env);
+    const { accessToken } = (await right.json()) as { accessToken: string };
+    const opened = await app.request(
+      `/api/links/${slug}`,
+      { headers: { "X-Kelpo-Access": accessToken } },
+      env,
+    );
     expect(opened.status).toBe(200);
+
+    const viaQuery = await app.request(`/api/links/${slug}?access=${accessToken}`, {}, env);
+    expect(viaQuery.status).toBe(200);
   });
 });

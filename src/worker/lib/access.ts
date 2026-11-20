@@ -1,7 +1,8 @@
-/** Shared request guards: link lookup, expiry, password, owner, rate limits, cookies. */
+/** Shared request guards: link lookup, expiry, password, owner, rate limits.
+ *  Auth travels in headers (and in a query token for <img>/<a> requests), not cookies,
+ *  so the Worker can live on Cloudflare while the app is served from Vercel. */
 
 import type { Context } from "hono";
-import { getCookie } from "hono/cookie";
 import type { Env } from "../env";
 import type { FileRow, LinkRow, PublicLink } from "../types";
 import { verifyAccessToken } from "./password";
@@ -18,19 +19,8 @@ export class HttpError extends Error {
   }
 }
 
-export const OWNER_COOKIE = "kelpo_owner";
-export const accessCookie = (slug: string) => `kelpo_access_${slug}`;
-
 function secret(env: Env): string {
   return env.SESSION_SECRET || env.APP_URL;
-}
-
-export function setCookie(c: AppContext, name: string, value: string, maxAge: number) {
-  const secure = c.env.APP_URL.startsWith("https://") ? "; Secure" : "";
-  c.header(
-    "Set-Cookie",
-    `${name}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure}`,
-  );
 }
 
 export function sessionSecret(env: Env): string {
@@ -58,16 +48,14 @@ export async function assertLive(link: LinkRow, env: Env): Promise<void> {
 
 export async function assertAccess(c: AppContext, link: LinkRow): Promise<void> {
   if (!link.password_hash) return;
-  const ok = await verifyAccessToken(
-    getCookie(c, accessCookie(link.slug)),
-    link.slug,
-    sessionSecret(c.env),
-  );
+  const token =
+    c.req.header("X-Kelpo-Access") || c.req.query("access") || undefined;
+  const ok = await verifyAccessToken(token, link.slug, sessionSecret(c.env));
   if (!ok) throw new HttpError(401, "This delivery is sealed");
 }
 
 export async function assertOwner(c: AppContext, link: LinkRow): Promise<void> {
-  const token = getCookie(c, OWNER_COOKIE);
+  const token = c.req.header("X-Kelpo-Owner");
   if (!token || (await sha256Hex(token)) !== link.owner_token_hash) {
     throw new HttpError(403, "Not your link");
   }
@@ -125,14 +113,4 @@ export async function publicLink(env: Env, link: LinkRow): Promise<PublicLink> {
       height: file.height,
     })),
   };
-}
-
-export function expiryLabel(timestamp: number): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  }).format(new Date(timestamp));
 }

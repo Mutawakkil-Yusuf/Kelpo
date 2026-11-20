@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../env";
 import {
-  accessCookie,
   assertAccess,
   assertLive,
   checkRate,
@@ -10,7 +9,6 @@ import {
   HttpError,
   publicLink,
   sessionSecret,
-  setCookie,
 } from "../lib/access";
 import { signAccessToken, verifyPassword } from "../lib/password";
 import { safeFileName } from "../lib/validate";
@@ -51,13 +49,12 @@ app.post("/:slug/unlock", async (c) => {
   });
   if (!ok) throw new HttpError(401, "That password is not right");
 
-  const token = await signAccessToken(
+  const accessToken = await signAccessToken(
     link.slug,
     sessionSecret(c.env),
     Math.min(link.expires_at, Date.now() + 30 * 24 * 60 * 60 * 1000),
   );
-  setCookie(c, accessCookie(link.slug), token, Math.floor((link.expires_at - Date.now()) / 1000));
-  return c.json({ ok: true });
+  return c.json({ ok: true, accessToken });
 });
 
 app.get("/:slug/zip", async (c) => {

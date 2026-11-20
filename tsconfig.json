@@ -14,5 +14,12 @@
     "isolatedModules": true,
     "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["src/**/*.ts", "web/src/**/*.ts", "web/src/**/*.tsx", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "api/**/*.ts",
+    "web/src/**/*.ts",
+    "web/src/**/*.tsx",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

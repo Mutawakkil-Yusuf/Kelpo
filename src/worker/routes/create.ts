@@ -1,15 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { Env } from "../env";
-import {
-  assertOwner,
-  checkRate,
-  getLink,
-  HttpError,
-  OWNER_COOKIE,
-  publicLink,
-  setCookie,
-} from "../lib/access";
+import { assertOwner, checkRate, getLink, HttpError, publicLink } from "../lib/access";
 import { hashPassword } from "../lib/password";
 import { generateId, generateOwnerToken, generateSlug, sha256Hex } from "../lib/slug";
 import {
@@ -73,8 +65,7 @@ app.post("/", async (c) => {
     )
     .run();
 
-  setCookie(c, OWNER_COOKIE, ownerToken, 30 * 24 * 60 * 60);
-  return c.json({ slug, expiresAt }, 201);
+  return c.json({ slug, expiresAt, ownerToken }, 201);
 });
 
 app.post("/:slug/files", async (c) => {
@@ -167,8 +158,9 @@ app.post("/:slug/finalize", async (c) => {
 
   const fresh = await getLink(c.env, link.slug);
   const payload: PublicLink = await publicLink(c.env, fresh);
+  const appOrigin = (c.env.PUBLIC_APP_URL || c.env.APP_URL).replace(/\/$/, "");
   return c.json({
-    url: `${c.env.APP_URL.replace(/\/$/, "")}/p/${link.slug}`,
+    url: `${appOrigin}/p/${link.slug}`,
     link: payload,
   });
 });

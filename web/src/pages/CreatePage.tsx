@@ -1,6 +1,7 @@
 import { type CSSProperties, useMemo, useRef, useState } from "react";
 import { api, ApiError, type PublicLink } from "../lib/api";
-import { formatBytes, formatExpiry, previewUrl } from "../lib/format";
+import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
+import { setOwnerToken } from "../lib/session";
 import { makeThumbnail } from "../lib/thumbnails";
 
 type Expiry = "24h" | "7d" | "30d";
@@ -83,6 +84,7 @@ export default function CreatePage() {
         password: hasPassword ? password : undefined,
         fileCount: files.length,
       });
+      setOwnerToken(created.ownerToken);
       for (let index = 0; index < files.length; index++) {
         setProgress({ index: index + 1, fraction: 0 });
         const item = files[index];
@@ -158,7 +160,7 @@ export default function CreatePage() {
             </div>
           </div>
           <div className="chat-card">
-            {first && <img className="chat-thumb" src={previewUrl(first.id)} alt="" />}
+            {first && <img className="chat-thumb" src={ogUrl(result.link.slug)} alt="" />}
             <div className="min-w-0">
               <p className="truncate font-medium">{result.link.title}</p>
               <p className="mt-1 truncate text-xs text-muted">

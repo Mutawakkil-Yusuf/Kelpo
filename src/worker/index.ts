@@ -1,8 +1,9 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import type { Env } from "./env";
-import { HttpError } from "./lib/access";
+import { getLink, HttpError } from "./lib/access";
 import { purgeExpired } from "./lib/cleanup";
 import createRoutes from "./routes/create";
 import { fileRoutes, ogRoutes } from "./routes/file";
@@ -11,63 +12,70 @@ import reportRoutes from "./routes/report";
 
 const app = new Hono<{ Bindings: Env }>();
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      default: return "&#39;";
-    }
-  });
-}
+app.use(
+  "/api/*",
+  cors({
+    origin: (origin, c) => {
+      const allowed = (c.env.ALLOWED_ORIGIN || "")
+        .split(",")
+        .map((value: string) => value.trim())
+        .filter(Boolean);
+      if (!allowed.length) return origin || "*";
+      const match = allowed.find(
+        (rule: string) =>
+          rule === "*" ||
+          rule === origin ||
+          (rule.startsWith("*.") && origin.endsWith(rule.slice(1))),
+      );
+      if (!match) return allowed[0];
+      if (match === "*" || match.startsWith("*.")) return origin;
+      return match;
+    },
+    allowHeaders: ["Content-Type", "X-Kelpo-Owner", "X-Kelpo-Access"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    maxAge: 600,
+  }),
+);
 
 /**
- * Crawler-facing page. The SPA shell is fetched from assets and given real OG tags,
- * so a shared link arrives in chat with the sender's title and a file thumbnail.
+ * Public metadata for the Vercel edge function that writes og: tags. It carries
+ * no file names, password state or owner token — only what a chat card shows.
  */
-app.get("/p/:slug", async (c) => {
-  const slug = c.req.param("slug");
-  const origin = c.env.APP_URL.replace(/\/$/, "");
-  let title = "Kelpo — original quality, delivered";
-  let description = "One link. Every file. No compression.";
-
+app.get("/api/og-meta/:slug", async (c) => {
+  const fallback = {
+    title: "Kelpo — original quality, delivered",
+    message: null,
+    fileCount: 0,
+    expiresAt: 0,
+    thumbnailId: null,
+  };
   try {
-    const link = await c.env.DB.prepare("SELECT * FROM links WHERE slug = ?")
-      .bind(slug)
-      .first<{ title: string; message: string | null; status: string; expires_at: number }>();
-    if (link && link.status === "active" && link.expires_at > Date.now()) {
-      const count = await c.env.DB.prepare(
-        "SELECT COUNT(*) AS count FROM files WHERE link_slug = ?",
-      )
-        .bind(slug)
-        .first<{ count: number }>();
-      title = `${link.title} — Kelpo`;
-      description = link.message || `${count?.count ?? 0} original files at full quality`;
+    const link = await getLink(c.env, c.req.param("slug"));
+    if (link.status !== "active" || link.expires_at <= Date.now()) {
+      return c.json(fallback);
     }
+    const count = await c.env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM files WHERE link_slug = ?",
+    )
+      .bind(link.slug)
+      .first<{ count: number }>();
+    const thumbnail = await c.env.DB.prepare(
+      `SELECT id FROM files WHERE link_slug = ?
+         AND content_type IN ('image/jpeg', 'image/png', 'image/gif')
+       ORDER BY sort_order LIMIT 1`,
+    )
+      .bind(link.slug)
+      .first<{ id: string }>();
+    return c.json({
+      title: link.title,
+      message: link.message,
+      fileCount: count?.count ?? 0,
+      expiresAt: link.expires_at,
+      thumbnailId: thumbnail?.id ?? null,
+    });
   } catch {
-    // A broken DB still gets a usable chat card.
+    return c.json(fallback);
   }
-
-  const shell = await c.env.ASSETS.fetch(new Request(`${origin}/index.html`));
-  const html = (await shell.text()).replace(
-    "</head>",
-    `<meta property="og:type" content="website" />
-     <meta property="og:url" content="${escapeHtml(`${origin}/p/${slug}`)}" />
-     <meta property="og:title" content="${escapeHtml(title)}" />
-     <meta property="og:description" content="${escapeHtml(description)}" />
-     <meta property="og:image" content="${escapeHtml(`${origin}/api/og/${slug}`)}" />
-     <meta name="twitter:card" content="summary_large_image" />
-     </head>`,
-  );
-
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "public, max-age=60",
-    },
-  });
 });
 
 app.route("/api/links", createRoutes);
@@ -75,8 +83,6 @@ app.route("/api/links", linkRoutes);
 app.route("/api/links", reportRoutes);
 app.route("/api/files", fileRoutes);
 app.route("/api/og", ogRoutes);
-
-app.get("/*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 const errorMessages: Record<string, string> = {
   UNSUPPORTED_TYPE: "Only JPG, PNG, WebP, GIF and PDF files are allowed",

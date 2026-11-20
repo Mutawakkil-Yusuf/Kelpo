@@ -21,16 +21,25 @@ spiky usage, and have a clean paid path. The brief proposes Supabase-like storag
 
 ## Recommendation
 
-**Build Kelpo on Cloudflare, free tier:**
+**Build Kelpo on the free tiers, split across two platforms:**
 
-- **Workers** (with Hono) — API, per-link OG meta injection, SPA hosting, cron handler.
+- **Vercel** — Vite + React app, plus a small edge function at `/p/:slug` that writes
+  chat-preview tags into the SPA shell. A plain `.vercel.app` domain is enough.
+- **Cloudflare Workers** (with Hono) — API, CORS, OG thumbnail, cron handler.
 - **D1** (SQLite at the edge) — links, files, rate-limit events, reports.
 - **R2** — original files, private bucket, all reads/writes through the Worker.
 - **Cron Trigger** — delete expired rows and their R2 objects.
-- **Vite + React + TypeScript + Tailwind** — the client UI, built to static assets and served by the Worker.
 
-Everything runs locally with `wrangler dev` (Miniflare emulates D1/R2/cron) without a
-Cloudflare account or credentials. Deploy with `wrangler deploy` once you have one.
+Everything runs locally with `wrangler dev` and `vite`, with no Cloudflare account or
+credentials. Deploy the Worker with `wrangler deploy` and import the repo in Vercel.
+
+### Why the split works on `.vercel.app`
+
+No cookies are used. Cross-site cookies would need `SameSite=None` and would be blocked
+by Safari; instead the owner token travels in `X-Kelpo-Owner` and the password token in
+`X-Kelpo-Access` (or `?access=` for images and downloads). CORS allows the exact Vercel
+origin plus `*.vercel.app` previews, so no custom domain is required. A custom domain
+under one registrable domain would be the alternative if we wanted first-party cookies.
 
 ### Why not Supabase Storage
 

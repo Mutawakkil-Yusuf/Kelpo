@@ -1,4 +1,6 @@
 import type { PublicLink } from "../../../src/worker/types";
+import { apiUrl } from "./config";
+import { getAccessToken, getOwnerToken } from "./session";
 
 export type { PublicLink };
 
@@ -11,8 +13,18 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, init);
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  options?: { slug?: string },
+): Promise<T> {
+  const headers = new Headers(init?.headers);
+  const owner = getOwnerToken();
+  if (owner) headers.set("X-Kelpo-Owner", owner);
+  const access = options?.slug ? getAccessToken(options.slug) : "";
+  if (access) headers.set("X-Kelpo-Access", access);
+
+  const response = await fetch(apiUrl(path), { ...init, headers });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new ApiError(response.status, body.error || "Request failed");
@@ -35,7 +47,8 @@ function upload(
 ): Promise<UploadedFile> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `/api/links/${slug}/files`);
+    xhr.open("POST", apiUrl(`/api/links/${slug}/files`));
+    xhr.setRequestHeader("X-Kelpo-Owner", getOwnerToken());
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
     };
@@ -67,7 +80,7 @@ export const api = {
     password?: string;
     fileCount: number;
   }) {
-    return request<{ slug: string; expiresAt: number }>("/api/links", {
+    return request<{ slug: string; expiresAt: number; ownerToken: string }>("/api/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -83,22 +96,30 @@ export const api = {
   },
 
   getLink(slug: string) {
-    return request<PublicLink>(`/api/links/${slug}`);
+    return request<PublicLink>(`/api/links/${slug}`, undefined, { slug });
   },
 
   unlock(slug: string, password: string) {
-    return request<{ ok: boolean }>(`/api/links/${slug}/unlock`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
+    return request<{ ok: boolean; accessToken: string }>(
+      `/api/links/${slug}/unlock`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      },
+      { slug },
+    );
   },
 
   report(slug: string, reason: string) {
-    return request<{ ok: boolean }>(`/api/links/${slug}/report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }),
-    });
+    return request<{ ok: boolean }>(
+      `/api/links/${slug}/report`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      },
+      { slug },
+    );
   },
 };
