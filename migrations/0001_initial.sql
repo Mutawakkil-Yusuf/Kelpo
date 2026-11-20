@@ -6,7 +6,7 @@ CREATE TABLE links (
   message           TEXT,
   password_salt     TEXT,                      -- base64; NULL when unprotected
   password_hash     TEXT,                      -- PBKDF2 base64; NULL when unprotected
-  owner_token_hash  TEXT NOT NULL,             -- hashed secret from sender cookie; claimable in phase 2
+  owner_token_hash  TEXT NOT NULL,             -- hashed sender token; claimable in phase 2
   expected_files    INTEGER NOT NULL DEFAULT 0,
   expires_at        INTEGER NOT NULL,          -- epoch milliseconds
   created_at        INTEGER NOT NULL,          -- epoch milliseconds

@@ -8,7 +8,7 @@
   // with the real D1 database id from `wrangler d1 create kelpo`, and create
   // the bucket with `wrangler r2 bucket create kelpo-files`.
   "d1_databases": [
-    { "binding": "DB", "database_name": "kelpo", "database_id": "kelpo-local" }
+    { "binding": "DB", "database_name": "kelpo", "database_id": "5b81a104-ba00-4ea6-830b-b4cd973277c6" }
   ],
   "r2_buckets": [
     { "binding": "FILES", "bucket_name": "kelpo-files" }
@@ -18,8 +18,8 @@
   "triggers": { "crons": ["*/10 * * * *"] },
 
   "vars": {
-    "APP_URL": "http://localhost:8787",
-    "PUBLIC_APP_URL": "http://localhost:5173",
-    "ALLOWED_ORIGIN": "http://localhost:5173"
+    "APP_URL": "https://kelpo.mutawakkil280.workers.dev",
+    "PUBLIC_APP_URL": "https://kelpo.vercel.app",
+    "ALLOWED_ORIGIN": "https://kelpo.vercel.app,*.vercel.app"
   }
 }
