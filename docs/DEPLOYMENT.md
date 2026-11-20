@@ -26,19 +26,18 @@ Free projects pause after a week of inactivity. When a card is available, enable
 Cloudflare R2 and replace `src/worker/lib/storage.ts` with an R2 client to get zero
 egress and 10 GB storage.
 
-## Vercel — pending user action
+## Vercel — deployed
 
-The connected Vercel MCP token belongs to a different account and cannot see or
-create `usekelpo`. Import `Mutawakkil-Yusuf/Kelpo` in the Vercel dashboard:
-
-- Framework preset: Vite (from `vercel.json`)
-- Build command: `pnpm build`
-- Output directory: `web/dist`
-- Env vars for production, preview and development:
+- Production: `https://usekelpo.vercel.app`
+- Project: `shydoll02s-projects/kelpo`, linked locally via `vercel link`
+- Build: Vite, `pnpm build`, output `web/dist` (from `vercel.json`)
+- Env vars on production, preview and development:
   - `VITE_API_URL=https://kelpo.mutawakkil280.workers.dev`
   - `KELPO_API_URL=https://kelpo.mutawakkil280.workers.dev`
+- `/p/:slug` rewrites to `/api/p/[slug]`, which injects og: tags. The handler reads
+  the slug from the URL because Vercel's rewrite does not populate route params.
 
-`/p/:slug` is handled by `api/p/[slug].ts` on Vercel; no rewrite is needed.
+Deploy with `npx vercel deploy --prod`.
 
 ## Smoke test already run
 

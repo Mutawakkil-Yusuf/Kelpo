@@ -3,5 +3,6 @@
   "framework": "vite",
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
-  "outputDirectory": "web/dist"
+  "outputDirectory": "web/dist",
+  "rewrites": [{ "source": "/p/:slug", "destination": "/api/p/:slug" }]
 }

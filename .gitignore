@@ -8,3 +8,6 @@ web/dist/
 .env
 .env.local
 supabase/.temp/
+.vercel
+.env*
+!.env.example

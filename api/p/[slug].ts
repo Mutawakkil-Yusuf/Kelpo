@@ -27,9 +27,11 @@ interface OgMeta {
 
 export default async function handler(
   request: Request,
-  { params }: { params: { slug: string } },
+  context?: { params?: { slug?: string } },
 ): Promise<Response> {
-  const slug = params.slug;
+  // Vercel's rewrite keeps the path but may not populate route params.
+  const fromPath = new URL(request.url).pathname.split("/").filter(Boolean).pop() ?? "";
+  const slug = decodeURIComponent(context?.params?.slug || fromPath);
   const api = (process.env.KELPO_API_URL || process.env.VITE_API_URL || "http://localhost:8787").replace(/\/$/, "");
   const origin = new URL(request.url).origin;
 
