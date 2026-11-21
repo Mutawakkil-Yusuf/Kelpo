@@ -339,55 +339,26 @@ export default function CreatePage() {
         </div>
 
         <motion.div
-          className="desk-card"
-          aria-label="A Kelpo delivery link in a chat message and the originals it opens"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.15 }}
+          className="chat-message"
+          aria-label="The single message your client receives"
+          initial={{ opacity: 0, x: 28 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.55, delay: 0.15, ease: [0.2, 0, 0, 1] }}
         >
-          <div className="desk-card-head">
-            <span className="mono">Delivery card · WhatsApp</span>
-            <Seal size="sm" className="animate-seal" />
+          <div className="chat-message-head">
+            <strong>What your client receives</strong>
+            <span className="mono muted">WhatsApp · today, 09:41</span>
           </div>
-          <div className="desk-card-body">
-            <div className="desk-channel">
-              <span className="reg-mark" aria-hidden="true" />
-              <span className="desk-channel-name">Kelpo</span>
-              <span className="mono muted">today, 09:41</span>
-            </div>
-            <div className="desk-bubble">
-              <div className="desk-file">
-                <span className="desk-thumb" aria-hidden="true" />
-                <div style={{ minWidth: 0 }}>
-                  <p className="desk-file-title">Brand refresh — final files</p>
-                  <p className="mono muted desk-file-meta">6 files · 42 MB · original quality</p>
-                  <p className="mono signal desk-file-meta">Ends 25 Nov, 08:12</p>
-                </div>
-                <span className="chat-arrow" aria-hidden="true">↗</span>
+          <div className="chat-bubble">
+            <div className="chat-bubble-card">
+              <span className="chat-art" aria-hidden="true" />
+              <div style={{ minWidth: 0 }}>
+                <p className="chat-bubble-title">Brand refresh — final files</p>
+                <p className="mono muted chat-bubble-meta">6 files · 42 MB · original quality</p>
+                <p className="mono signal chat-bubble-meta">Ends 25 Nov, 08:12</p>
               </div>
-              <div className="desk-open"><span aria-hidden="true" /> Opens to the originals</div>
+              <span className="chat-bubble-arrow" aria-hidden="true">↗</span>
             </div>
-          </div>
-          <div className="desk-manifest">
-            <div className="mono muted" style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem" }}>
-              <span>Original files</span><span>3 of 6</span>
-            </div>
-            {[
-              ["cover-final.png", "8.0 MB"],
-              ["packaging-front.png", "5.9 MB"],
-              ["social-1.jpg", "3.0 MB"],
-            ].map(([name, size], index) => (
-              <motion.div
-                className="desk-manifest-row"
-                key={name}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.45 + index * 0.09 }}
-              >
-                <span className="mono">{name}</span>
-                <span className="desk-original">{size}</span>
-              </motion.div>
-            ))}
           </div>
         </motion.div>
       </section>

@@ -8,7 +8,7 @@ desk, not a mood board.
 
 | Truth | Device |
 | --- | --- |
-| Originals are not compressed | The words "Send the originals. No compression." in the first viewport; a delivery card that opens to a manifest of untouched files |
+| Originals are not compressed | The words "Send the originals. Uncompressed." in the first viewport; a single client message with an original-quality link card |
 | It expires | A draining ring beside an exact date and a mono countdown |
 | It works in chat apps where attachments fail | The result is shown as a chat message with a rich link card, never a bare URL |
 | It is for creatives delivering to clients | Contact sheets, packing slips, measured file sizes, tabular counts |
@@ -35,8 +35,9 @@ dash or kicker in front of them.
 
 - Pressed seal: 3×3 halftone square with a notched corner in signal orange; used as
   mark, favicon, loader and success stamp.
-- Desk card: a chat bubble containing the delivery card, a connector labelled "opens
-  to the originals", and a ruled manifest of original files. This is the hero visual.
+- Client message: a single chat message containing the delivery card — title, file
+  count, original-quality line and expiry. Nothing else shares the frame. This is the
+  hero visual.
 - Buttons: ink field with light text; hover becomes signal; press steps down. Signal
   is never the default button fill.
 - Fields: hairline underline, signal on focus. Expiry choices are three equal stamps
