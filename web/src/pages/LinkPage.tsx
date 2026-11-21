@@ -1,9 +1,8 @@
 import { type CSSProperties, type MouseEvent, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import Credits from "../components/Credits";
-import LikeButton from "../components/LikeButton";
 import Loading from "../components/Loading";
 import Seal from "../components/Seal";
+import SiteFooter from "../components/SiteFooter";
 import TryKelpoPrompt from "../components/TryKelpoPrompt";
 import { api, ApiError, type Pin, type PublicLink } from "../lib/api";
 import { downloadUrl, formatBytes, formatExpiry, previewUrl, timeLeft, zipUrl } from "../lib/format";
@@ -182,7 +181,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             The files were deleted when it ended. Ask the sender for a fresh one.
           </p>
         </section>
-        <footer className="footer"><Credits /><LikeButton /></footer>
+        <SiteFooter />
       </main>
     );
   }
@@ -196,7 +195,7 @@ export default function LinkPage({ slug }: { slug: string }) {
           <h1 className="h2" style={{ marginTop: "2rem" }}>This delivery could not be opened.</h1>
           <button className="btn" style={{ marginTop: "2rem" }} onClick={() => void load()}>Try again</button>
         </section>
-        <footer className="footer"><Credits /><LikeButton /></footer>
+        <SiteFooter />
       </main>
     );
   }
@@ -223,7 +222,7 @@ export default function LinkPage({ slug }: { slug: string }) {
             <button className="btn btn-block" style={{ marginTop: "1.5rem" }} onClick={() => void unlock()}>Open link</button>
           </motion.div>
         </section>
-        <footer className="footer"><Credits /><LikeButton /></footer>
+        <SiteFooter />
       </main>
     );
   }
@@ -309,8 +308,8 @@ export default function LinkPage({ slug }: { slug: string }) {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="credits">
+      <section className="delivery-notes">
+        <div className="delivery-stamp mono">
           <Seal size="sm" />
           <span>Delivered at original quality. Kelpo. Ends {formatExpiry(link.expiresAt)}</span>
         </div>
@@ -343,7 +342,7 @@ export default function LinkPage({ slug }: { slug: string }) {
                     <span className="pin-note-number">{index + 1}</span>
                     <div style={{ minWidth: 0 }}>
                       <p>{pin.message}</p>
-                      <p className="mono muted" style={{ marginTop: "0.25rem" }}>{pin.author} · {file?.name ?? "file"}</p>
+                      <p className="mono muted" style={{ marginTop: "0.25rem" }}>{pin.author}, {file?.name ?? "file"}</p>
                     </div>
                   </div>
                 );
@@ -351,11 +350,9 @@ export default function LinkPage({ slug }: { slug: string }) {
             </div>
           </div>
         )}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", alignItems: "flex-end", justifyContent: "space-between", width: "100%", borderTop: "1px solid var(--color-ink)", paddingTop: "1.25rem" }}>
-          <Credits />
-          <LikeButton />
-        </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
 
       <AnimatePresence>
         {current && viewer !== null && (

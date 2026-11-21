@@ -2,9 +2,8 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react";
 import gsap from "gsap";
 import Lenis from "lenis";
-import Credits from "../components/Credits";
-import LikeButton from "../components/LikeButton";
 import Seal from "../components/Seal";
+import SiteFooter from "../components/SiteFooter";
 import { api, ApiError, type PublicLink } from "../lib/api";
 import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
 import { prefersReducedMotion } from "../lib/motion";
@@ -233,7 +232,7 @@ export default function CreatePage() {
               <Seal size="sm" />
               <div>
                 <p style={{ fontWeight: 600 }}>Kelpo</p>
-                <p className="mono muted">link · {new URL(result.url).host}</p>
+                <p className="mono muted">link. {new URL(result.url).host}</p>
               </div>
             </div>
             <a className="chat-card" href={result.url} target="_blank" rel="noreferrer" aria-label="Open the shared delivery">
@@ -241,7 +240,7 @@ export default function CreatePage() {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{result.link.title}</p>
                 <p className="mono muted" style={{ marginTop: "0.35rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {result.link.files.length} files · {formatBytes(result.link.files.reduce((sum, file) => sum + file.sizeBytes, 0))} · original quality
+                  {result.link.files.length} files, {formatBytes(result.link.files.reduce((sum, file) => sum + file.sizeBytes, 0))}. Original quality.
                 </p>
                 <p className="mono signal" style={{ marginTop: "0.55rem" }}>Ends {formatExpiry(result.expiresAt)}</p>
               </div>
@@ -300,14 +299,11 @@ export default function CreatePage() {
         {error && <p className="error-line">{error}</p>}
 
         <div className="hero-actions" style={{ marginTop: "2.5rem" }}>
-          <button className="text-btn" onClick={reset}>Create another delivery</button>
-          <a className="text-btn" href="/dashboard">Save your links</a>
+          <button className="btn btn-secondary" onClick={reset}>Create another delivery</button>
+          <a className="btn btn-secondary" href="/dashboard">Save your links</a>
         </div>
 
-        <footer className="footer">
-          <Credits />
-          <LikeButton />
-        </footer>
+        <SiteFooter />
       </main>
     );
   }
@@ -333,9 +329,9 @@ export default function CreatePage() {
             <button className="btn" onClick={() => document.getElementById("delivery-tray")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
               Start a delivery
             </button>
-            <a className="text-btn" href="/dashboard">Save your links ↗</a>
+            <a className="btn btn-secondary" href="/dashboard">Save your links</a>
           </div>
-          <p className="assurance">No account · No app · No compression</p>
+          <p className="assurance">No account. No app. No compression.</p>
         </div>
 
         <div className="compare" aria-label="The same file, compressed in a chat app and intact with Kelpo">
@@ -566,13 +562,7 @@ export default function CreatePage() {
         No account. No app. No compression.
       </p>
 
-      <footer className="footer">
-        <div>
-          <Credits />
-          <p className="mono muted" style={{ marginTop: "0.4rem" }}>Comparison photograph: Unsplash.</p>
-        </div>
-        <LikeButton />
-      </footer>
+      <SiteFooter note="Comparison photograph: Unsplash." />
     </main>
   );
 }

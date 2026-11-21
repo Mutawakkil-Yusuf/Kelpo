@@ -1,9 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
-import Credits from "../components/Credits";
-import LikeButton from "../components/LikeButton";
 import Loading from "../components/Loading";
 import Seal from "../components/Seal";
+import SiteFooter from "../components/SiteFooter";
 import { api, ApiError, type DashboardData } from "../lib/api";
 import { clearSession, getSession, setSession } from "../lib/auth";
 import { formatExpiry } from "../lib/format";
@@ -139,7 +138,7 @@ export default function DashboardPage() {
           </button>
         </section>
 
-        <footer className="footer"><Credits /><LikeButton /></footer>
+        <SiteFooter />
       </main>
     );
   }
@@ -255,7 +254,7 @@ export default function DashboardPage() {
 
       {error && <p className="error-line">{error}</p>}
 
-      <footer className="footer"><Credits /><LikeButton /></footer>
+      <SiteFooter />
     </main>
   );
 }
