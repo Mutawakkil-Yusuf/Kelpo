@@ -1,19 +1,21 @@
-/** Small, plain credit line. No marketing language. */
+/** The maker's block. A name and three links, with a plain label. */
 export default function Credits() {
   return (
     <div className="credits">
-      <span>
-        By <span className="text-ink">Mutawakkil</span>
-      </span>
-      <a href="https://instagram.com/itsmutawakkil" target="_blank" rel="noreferrer">
-        ig: @itsmutawakkil
+      <span className="credits-label mono">Creator</span>
+      <a
+        className="credits-name"
+        href="https://github.com/Mutawakkil-Yusuf"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Mutawakkil
       </a>
-      <a href="https://x.com/itsmutawakkil" target="_blank" rel="noreferrer">
-        x: @itsmutawakkil
-      </a>
-      <a href="https://github.com/Mutawakkil-Yusuf" target="_blank" rel="noreferrer">
-        github: Mutawakkil-Yusuf
-      </a>
+      <div className="credits-links mono">
+        <a href="https://instagram.com/itsmutawakkil" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://x.com/itsmutawakkil" target="_blank" rel="noreferrer">X</a>
+        <a href="https://github.com/Mutawakkil-Yusuf" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
     </div>
   );
 }
