@@ -338,29 +338,44 @@ export default function CreatePage() {
           <p className="assurance">No account · No app · No compression</p>
         </div>
 
-        <motion.div
-          className="chat-message"
-          aria-label="The single message your client receives"
-          initial={{ opacity: 0, x: 28 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.55, delay: 0.15, ease: [0.2, 0, 0, 1] }}
-        >
-          <div className="chat-message-head">
-            <strong>What your client receives</strong>
-            <span className="mono muted">WhatsApp · today, 09:41</span>
-          </div>
-          <div className="chat-bubble">
-            <div className="chat-bubble-card">
-              <span className="chat-art" aria-hidden="true" />
-              <div style={{ minWidth: 0 }}>
-                <p className="chat-bubble-title">Brand refresh — final files</p>
-                <p className="mono muted chat-bubble-meta">6 files · 42 MB · original quality</p>
-                <p className="mono signal chat-bubble-meta">Ends 25 Nov, 08:12</p>
+        <div className="compare" aria-label="The same file, compressed in a chat app and intact with Kelpo">
+          {[
+            {
+              key: "compressed",
+              label: "In a chat app",
+              note: "Compressed. Capped. Sometimes blocked.",
+              src: "/images/compare-compressed.jpg",
+              tag: "Compressed · 2 KB",
+              original: false,
+            },
+            {
+              key: "original",
+              label: "With Kelpo",
+              note: "Every byte, intact.",
+              src: "/images/compare-original.jpg",
+              tag: "Original · 190 KB",
+              original: true,
+            },
+          ].map((side, index) => (
+            <motion.div
+              className="compare-panel"
+              key={side.key}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.2 + index * 0.12 }}
+            >
+              <div className="compare-label">
+                <strong>{side.label}</strong>
+                <span className="mono muted">0{index + 1} / 02</span>
               </div>
-              <span className="chat-bubble-arrow" aria-hidden="true">↗</span>
-            </div>
-          </div>
-        </motion.div>
+              <div className={`compare-frame ${side.original ? "is-original" : "is-compressed"}`}>
+                <img src={side.src} alt="A photograph of paint and a brush, shown at two quality levels" />
+                <span className={`compare-tag ${side.original ? "is-original" : ""}`}>{side.tag}</span>
+              </div>
+              <p className={`compare-note mono ${side.original ? "signal" : "muted"}`}>{side.note}</p>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       <section className="section" aria-label="How Kelpo works">
@@ -552,7 +567,10 @@ export default function CreatePage() {
       </p>
 
       <footer className="footer">
-        <Credits />
+        <div>
+          <Credits />
+          <p className="mono muted" style={{ marginTop: "0.4rem" }}>Comparison photograph: Unsplash.</p>
+        </div>
         <LikeButton />
       </footer>
     </main>
