@@ -3,7 +3,7 @@ import type { Env } from "../env";
 import { checkRate, sessionSecret } from "../lib/access";
 import { hashIp } from "../lib/slug";
 
-/** GET /api/like, POST /api/like — one like per visitor. */
+/** GET /api/like, POST /api/like. One like per visitor. */
 const app = new Hono<{ Bindings: Env }>();
 
 async function count(env: Env): Promise<number> {

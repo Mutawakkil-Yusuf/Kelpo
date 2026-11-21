@@ -99,8 +99,8 @@ export default function DashboardPage() {
             Keep your links in one place.
           </h1>
           <p className="lede" style={{ marginTop: "1.2rem" }}>
-            An account is optional. Creating and sending a link never asks for one. Save an
-            account only when you want history, revoke, extend and client notes.
+            No account needed to send. Sign in when you want your links saved, with views,
+            expiry controls and client notes.
           </p>
         </section>
 
@@ -157,7 +157,7 @@ export default function DashboardPage() {
       <section className="client-head" style={{ marginTop: "clamp(2.5rem, 8vh, 5rem)" }}>
         <div>
           <h1 className="display" style={{ fontSize: "clamp(2.8rem, 6vw, 4.75rem)" }}>Your links.</h1>
-          <p className="mono muted" style={{ marginTop: "1rem" }}>{data.account.email} · {data.account.plan}</p>
+          <p className="mono muted" style={{ marginTop: "1rem" }}>{data.account.email}, {data.account.plan}</p>
         </div>
         <p className="mono">{data.links.length} {data.links.length === 1 ? "link" : "links"}</p>
       </section>
@@ -173,7 +173,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="ledger-title">{link.title}</p>
                   <p className="mono muted" style={{ marginTop: "0.5rem" }}>
-                    {link.status} · ends {formatExpiry(link.expires_at)}
+                    {link.status}. Ends {formatExpiry(link.expires_at)}
                   </p>
                 </div>
                 <div className="mono muted num">
@@ -203,7 +203,7 @@ export default function DashboardPage() {
 
       <section className="section">
         <div className="section-head"><h2 className="h3">Stationery</h2></div>
-        <p className="lede">Your accent and logo appear on every delivery page you send from this account.</p>
+        <p className="lede">Your colour and logo appear on every delivery page you send.</p>
         <div className="form-row" style={{ alignItems: "end" }}>
           <label className="block">
             <span className="field-label">Accent</span>
@@ -231,11 +231,11 @@ export default function DashboardPage() {
         <div className="plan-grid">
           <div className="plan-card">
             <p className="h3">Free</p>
-            <p className="mono muted" style={{ marginTop: "0.8rem" }}>15 files · 25 MB each · 30 days · expiry links</p>
+            <p className="mono muted" style={{ marginTop: "0.8rem" }}>15 files. 25 MB each. 30 days. Expiring links.</p>
           </div>
           <div className="plan-card plan-pro">
             <p className="h3">Studio</p>
-            <p className="mono muted" style={{ marginTop: "0.8rem" }}>Larger files · longer expiry · your domain · client pins</p>
+            <p className="mono muted" style={{ marginTop: "0.8rem" }}>Larger files. Longer expiry. Your domain. Client pins.</p>
             <form
               style={{ display: "flex", gap: "0.6rem", marginTop: "1.5rem" }}
               onSubmit={(event) => {

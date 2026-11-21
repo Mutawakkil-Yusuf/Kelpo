@@ -37,8 +37,8 @@ export default function TryKelpoPrompt({
             <Seal />
             <h2 className="h3" style={{ marginTop: "1.5rem" }}>Sent with Kelpo.</h2>
             <p className="lede" style={{ marginTop: "0.8rem" }}>
-              Your files arrived as originals — no compression, no account, no app. Send your
-              own work the same way.
+              Your files arrived intact. No compression. No account. No app. Send your own
+              work the same way.
             </p>
             <a className="btn btn-block" style={{ marginTop: "2rem" }} href="/">Create a link</a>
             <button className="text-btn" style={{ marginTop: "1rem" }} onClick={onClose}>Not now</button>

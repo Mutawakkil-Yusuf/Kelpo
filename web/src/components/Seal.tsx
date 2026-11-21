@@ -3,7 +3,7 @@ type Props = {
   className?: string;
 };
 
-/** The pressed seal — the one brand motif. Doubles as the load/stamp animation. */
+/** The pressed seal. The one brand motif. Doubles as the load/stamp animation. */
 export default function Seal({ size = "md", className = "" }: Props) {
   const scale = size === "sm" ? "seal-sm" : size === "lg" ? "seal-lg" : "";
   return (

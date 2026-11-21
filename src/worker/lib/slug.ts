@@ -29,7 +29,7 @@ export async function sha256Hex(value: string): Promise<string> {
     .join("");
 }
 
-/** IPs are never stored raw — only a keyed digest. */
+/** IPs are never stored raw. Only a keyed digest. */
 export function hashIp(ip: string, secret: string): Promise<string> {
   return sha256Hex(`${secret}:${ip}`);
 }

@@ -11,7 +11,7 @@ import { record } from "../lib/events";
 import { brandCardPng } from "../lib/og-image";
 import { getObject } from "../lib/storage";
 
-/** GET /api/files/:id — inline preview or original download. */
+/** GET /api/files/:id. Inline preview or original download. */
 export const fileRoutes = new Hono<{ Bindings: Env }>();
 
 fileRoutes.get("/:id", async (c) => {
@@ -68,7 +68,7 @@ async function brandResponse(env: Env): Promise<Response> {
   });
 }
 
-/** GET /api/og — site card; GET /api/og/:slug — that link's rendered card. */
+/** GET /api/og. Site card. GET /api/og/:slug. That link's rendered card. */
 export const ogRoutes = new Hono<{ Bindings: Env }>();
 
 ogRoutes.get("/", async (c) => brandResponse(c.env));

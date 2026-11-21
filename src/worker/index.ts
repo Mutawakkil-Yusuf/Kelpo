@@ -48,11 +48,11 @@ app.use(
 
 /**
  * Public metadata for the Vercel edge function that writes og: tags. It carries
- * no file names, password state or owner token — only what a chat card shows.
+ * no file names, password state or owner token. Only what a chat card shows.
  */
 app.get("/api/og-meta/:slug", async (c) => {
   const fallback = {
-    title: "Kelpo — original quality, delivered",
+    title: "Kelpo. Original files, one link.",
     message: null,
     fileCount: 0,
     expiresAt: 0,

@@ -1,4 +1,4 @@
-/** Streaming ZIP with STORE (no re-compression) — originals stay byte-for-byte. */
+/** Streaming ZIP with STORE (no recompression). Originals stay byte for byte. */
 
 import { Zip, ZipPassThrough } from "fflate";
 

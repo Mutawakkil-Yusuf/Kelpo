@@ -254,7 +254,7 @@ export default function LinkPage({ slug }: { slug: string }) {
           <h1 className="display" style={{ fontSize: "clamp(2.8rem, 6vw, 4.75rem)" }}>{link.title}</h1>
           {link.message && <p className="lede" style={{ marginTop: "1.2rem" }}>{link.message}</p>}
           <p className="mono muted" style={{ marginTop: "1.2rem" }}>
-            {link.files.length} {link.files.length === 1 ? "file" : "files"} · original quality
+            {link.files.length} {link.files.length === 1 ? "file" : "files"}. Original quality.
           </p>
         </div>
         <div className="expiry">
@@ -295,7 +295,7 @@ export default function LinkPage({ slug }: { slug: string }) {
               </button>
               <div className="frame-meta">
                 <span className="frame-name" title={file.name}>{file.name}</span>
-                <a href={downloadUrl(file.id, slug)}>Original · {formatBytes(file.sizeBytes)}</a>
+                <a href={downloadUrl(file.id, slug)}>Original, {formatBytes(file.sizeBytes)}</a>
               </div>
             </motion.figure>
           ))}
@@ -312,7 +312,7 @@ export default function LinkPage({ slug }: { slug: string }) {
       <footer className="footer">
         <div className="credits">
           <Seal size="sm" />
-          <span>Delivered at original quality · Kelpo · ends {formatExpiry(link.expiresAt)}</span>
+          <span>Delivered at original quality. Kelpo. Ends {formatExpiry(link.expiresAt)}</span>
         </div>
         <div className="mono muted">
           {reportSent ? (

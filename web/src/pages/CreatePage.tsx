@@ -288,11 +288,11 @@ export default function CreatePage() {
             )}
           </div>
           <p className="mono muted" style={{ marginTop: "1.5rem" }}>
-            Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
+            Link ends {formatExpiry(result.expiresAt)}. Then the files are deleted.
           </p>
           {stats && (
             <p className="mono muted" style={{ marginTop: "0.6rem" }}>
-              Opened {stats.opens} {stats.opens === 1 ? "time" : "times"} · {stats.downloads} original downloads · {stats.zips} ZIP downloads
+              Opened {stats.opens} {stats.opens === 1 ? "time" : "times"}, {stats.downloads} original downloads, {stats.zips} ZIP downloads
             </p>
           )}
         </section>
@@ -301,7 +301,7 @@ export default function CreatePage() {
 
         <div className="hero-actions" style={{ marginTop: "2.5rem" }}>
           <button className="text-btn" onClick={reset}>Create another delivery</button>
-          <a className="text-btn" href="/dashboard">Save links to an account — optional</a>
+          <a className="text-btn" href="/dashboard">Save your links</a>
         </div>
 
         <footer className="footer">
@@ -326,14 +326,14 @@ export default function CreatePage() {
             <span className="line"><span>Uncompressed.</span></span>
           </h1>
           <p className="lede hero-lede">
-            One link for up to 15 files. It works in WhatsApp, Instagram and email — and the
-            files delete themselves when the link ends.
+            One link for up to 15 files. Send it in WhatsApp, Instagram or email. When the
+            link ends, the files are gone.
           </p>
           <div className="hero-actions">
             <button className="btn" onClick={() => document.getElementById("delivery-tray")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
               Start a delivery
             </button>
-            <a className="text-btn" href="/dashboard">Save links to an account ↗</a>
+            <a className="text-btn" href="/dashboard">Save your links ↗</a>
           </div>
           <p className="assurance">No account · No app · No compression</p>
         </div>
@@ -343,17 +343,17 @@ export default function CreatePage() {
             {
               key: "compressed",
               label: "In a chat app",
-              note: "Compressed. Capped. Sometimes blocked.",
+              note: "Blurry. Capped. Sometimes blocked.",
               src: "/images/compare-compressed.jpg",
-              tag: "Compressed · 2 KB",
+              tag: "Compressed, 2 KB",
               original: false,
             },
             {
               key: "original",
               label: "With Kelpo",
-              note: "Every byte, intact.",
+              note: "Every byte. Intact.",
               src: "/images/compare-original.jpg",
-              tag: "Original · 190 KB",
+              tag: "Original, 190 KB",
               original: true,
             },
           ].map((side, index) => (
@@ -379,7 +379,7 @@ export default function CreatePage() {
       </section>
 
       <section className="section" aria-label="How Kelpo works">
-        <div className="section-head"><h2 className="h3">Three steps, one link.</h2></div>
+        <div className="section-head"><h2 className="h3">Three steps. One link.</h2></div>
         <div className="steps">
           {[
             ["01", "Pick your files", "Up to 15 originals."],
@@ -416,7 +416,7 @@ export default function CreatePage() {
         >
           <span className="reg-mark" aria-hidden="true" />
           <p className="tray-title">Drop files here</p>
-          <p className="mono muted">Or tap to choose · JPG, PNG, WebP, GIF, PDF · up to 15 files, 25 MB each</p>
+          <p className="mono muted">Or tap to choose. JPG, PNG, WebP, GIF, PDF. Up to 15 files, 25 MB each.</p>
           <input
             ref={inputRef}
             className="hidden"
@@ -477,7 +477,7 @@ export default function CreatePage() {
             <span className="field-label">Title</span>
             <input
               className="field field-display"
-              placeholder="Brand refresh — final files"
+              placeholder="Brand refresh final files"
               value={title}
               maxLength={120}
               onChange={(event) => setTitle(event.target.value)}
@@ -520,7 +520,7 @@ export default function CreatePage() {
               ))}
             </div>
             <p className="mono muted" style={{ marginTop: "0.8rem" }}>
-              Ends {formatExpiry(endsAt)}. We delete the files then.
+              Ends {formatExpiry(endsAt)}. Then the files are deleted.
             </p>
           </fieldset>
 
@@ -532,7 +532,7 @@ export default function CreatePage() {
                 checked={hasPassword}
                 onChange={(event) => setHasPassword(event.target.checked)}
               />
-              <span>Require a password to open this link</span>
+              <span>Require a password</span>
             </label>
             <AnimatePresence initial={false}>
               {hasPassword && (
@@ -560,7 +560,7 @@ export default function CreatePage() {
       {error && <p className="error-line">{error}</p>}
 
       <button className="btn btn-block" style={{ marginTop: "2.5rem" }} onClick={() => void seal()}>
-        Seal &amp; create link
+        Seal and create link
       </button>
       <p className="mono muted" style={{ marginTop: "1rem", textAlign: "center" }}>
         No account. No app. No compression.
