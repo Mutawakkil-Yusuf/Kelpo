@@ -1,10 +1,18 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import Credits from "../components/Credits";
 import LikeButton from "../components/LikeButton";
+import Seal from "../components/Seal";
 import { api, ApiError, type PublicLink } from "../lib/api";
 import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
+import { prefersReducedMotion } from "../lib/motion";
 import { setOwnerToken } from "../lib/session";
 import { makeOgCard, makeThumbnail } from "../lib/thumbnails";
+
+gsap.registerPlugin(ScrollTrigger);
 
 type Expiry = "24h" | "7d" | "30d";
 type Stage = "editing" | "uploading" | "done";
@@ -17,14 +25,6 @@ const LIFETIMES: Record<Expiry, number> = {
 };
 const ALLOWED = /\.(jpe?g|png|webp|gif|pdf)$/i;
 const MAX_BYTES = 25 * 1024 * 1024;
-
-function Seal({ small = false }: { small?: boolean }) {
-  return (
-    <span className={`seal animate-seal ${small ? "seal-sm" : ""}`} aria-hidden="true">
-      {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
-    </span>
-  );
-}
 
 /** Sender flow: pick files, set the terms, seal, then see the exact chat card. */
 export default function CreatePage() {
@@ -45,9 +45,61 @@ export default function CreatePage() {
   const [ogCard, setOgCard] = useState<Blob | null>(null);
   const [stats, setStats] = useState<{ opens: number; downloads: number; zips: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const proofRef = useRef<HTMLDivElement>(null);
 
   const totalBytes = useMemo(() => files.reduce((sum, item) => sum + item.file.size, 0), [files]);
   const endsAt = useMemo(() => Date.now() + LIFETIMES[expiry], [expiry]);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const lenis = new Lenis({ lerp: 0.11, wheelMultiplier: 0.9 });
+    let frame = 0;
+    const tick = (time: number) => {
+      lenis.raf(time);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      lenis.destroy();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (stage !== "editing" || prefersReducedMotion() || !heroRef.current) return;
+    const context = gsap.context(() => {
+      const timeline = gsap.timeline({ defaults: { ease: "power4.out" } });
+      timeline
+        .from("[data-seal]", { scale: 1.18, rotate: -4, opacity: 0, duration: 0.34 })
+        .from(".hero-title .line > span", { yPercent: 112, opacity: 0, duration: 0.75, stagger: 0.09 }, "-=0.08")
+        .from(".hero-lede", { y: 14, opacity: 0, duration: 0.5 }, "-=0.42")
+        .from(".hero-actions > *", { y: 10, opacity: 0, duration: 0.4, stagger: 0.07 }, "-=0.34")
+        .from(".proof", { y: 24, opacity: 0, duration: 0.6 }, "-=0.5");
+    }, heroRef);
+    return () => context.revert();
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage !== "editing" || prefersReducedMotion() || !proofRef.current) return;
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        proofRef.current,
+        { "--degrade": 0 },
+        {
+          "--degrade": 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: proofRef.current,
+            start: "top 82%",
+            end: "bottom 25%",
+            scrub: 0.5,
+          },
+        },
+      );
+    });
+    return () => context.revert();
+  }, [stage]);
 
   async function addFiles(list: FileList | File[]) {
     const incoming = Array.from(list);
@@ -148,16 +200,25 @@ export default function CreatePage() {
   }, [result]);
 
   if (stage === "uploading") {
-    const fraction = progress.fraction;
     return (
-      <main className="mx-auto min-h-dvh max-w-xl px-5 py-16">
-        <Seal />
-        <h1 className="mt-8 font-display text-4xl tracking-tight">Preparing your link.</h1>
-        <p className="mt-2 text-sm text-muted">Sending file {progress.index} of {files.length}. Keep this tab open.</p>
-        <div className="progress-rule mt-10" style={{ "--fill": `${fraction * 100}%` } as CSSProperties}>
-          <span />
-        </div>
-        <p className="mt-3 font-mono text-xs text-muted">Uploading originals and making small previews.</p>
+      <main className="page wrap">
+        <header className="masthead">
+          <span className="brand"><Seal /><span className="brand-name">Kelpo</span></span>
+          <span className="masthead-meta">Sealing your delivery</span>
+        </header>
+        <section className="section" style={{ borderTop: 0 }}>
+          <Seal size="lg" className="animate-seal" />
+          <h1 className="h2" style={{ marginTop: "1.8rem" }}>Preparing your link.</h1>
+          <p className="mono muted" style={{ marginTop: "0.7rem" }}>
+            Sending file {progress.index} of {files.length}. Keep this tab open.
+          </p>
+          <div className="progress-rule" style={{ "--fill": `${progress.fraction * 100}%`, marginTop: "2.5rem" } as CSSProperties}>
+            <span />
+          </div>
+          <p className="mono muted" style={{ marginTop: "0.8rem" }}>
+            Uploading originals and making small previews.
+          </p>
+        </section>
       </main>
     );
   }
@@ -165,115 +226,99 @@ export default function CreatePage() {
   if (stage === "done" && result) {
     const first = result.link.files[0];
     return (
-      <main className="mx-auto min-h-dvh max-w-xl px-5 py-10 sm:py-14">
-        <header className="flex items-center gap-3">
-          <Seal />
-          <span className="font-display text-2xl">Kelpo</span>
+      <main className="page wrap">
+        <header className="masthead">
+          <a className="brand" href="/"><Seal /><span className="brand-name">Kelpo</span></a>
+          <span className="masthead-meta">Original quality, delivered</span>
         </header>
 
-        <h1 className="settle-in mt-12 font-display text-5xl tracking-tight">Ready to send.</h1>
-        <p className="mt-2 text-sm text-muted">This is how it will look in chat.</p>
-
-        <div className="mt-8 flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Link preview</span>
-          <span className="h-px flex-1 bg-ink/15" />
-        </div>
-
-        <div className="chat-preview settle-in mt-3">
-          <div className="chat-contact">
-            <span className="seal seal-sm" aria-hidden="true">
-              {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
-            </span>
-            <div>
-              <p className="text-sm font-medium">Kelpo</p>
-              <p className="font-mono text-[11px] text-muted">
-                link · {new URL(result.url).host}
-              </p>
-            </div>
+        <section className="result-head" style={{ marginTop: "clamp(2.5rem, 8vh, 5rem)" }}>
+          <div>
+            <motion.h1
+              className="h2"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              Ready to send.
+            </motion.h1>
+            <p className="lede" style={{ marginTop: "0.8rem" }}>This is how it looks in chat.</p>
           </div>
-          <a
-            className="chat-card chat-card-link"
-            href={result.url}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open the shared delivery"
+          <Seal size="lg" className="animate-seal" />
+        </section>
+
+        <section className="section" style={{ paddingTop: "2rem" }}>
+          <div className="section-head"><h2 className="h3">The delivery card</h2></div>
+          <motion.div
+            className="chat-preview"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.1 }}
           >
-            {first && <img className="chat-thumb" src={ogUrl(result.link.slug)} alt="" />}
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{result.link.title}</p>
-              <p className="mt-1 truncate text-xs text-muted">
-                {result.link.files.length} files · {formatBytes(result.link.files.reduce((s, f) => s + f.sizeBytes, 0))} · original quality
-              </p>
-              <p className="mt-2 font-mono text-[11px] text-signal">Ends {formatExpiry(result.expiresAt)}</p>
+            <div className="chat-contact">
+              <Seal size="sm" />
+              <div>
+                <p style={{ fontWeight: 600 }}>Kelpo</p>
+                <p className="mono muted">link · {new URL(result.url).host}</p>
+              </div>
             </div>
-            <span className="chat-arrow" aria-hidden="true">↗</span>
-          </a>
-          <p className="mt-2 font-mono text-[11px] text-muted">
-            Tap the card to open the delivery.
-          </p>
-        </div>
+            <a className="chat-card" href={result.url} target="_blank" rel="noreferrer" aria-label="Open the shared delivery">
+              {first && <img className="chat-thumb" src={ogUrl(result.link.slug)} alt="" />}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }}>{result.link.title}</p>
+                <p className="mono muted" style={{ marginTop: "0.35rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {result.link.files.length} files · {formatBytes(result.link.files.reduce((sum, file) => sum + file.sizeBytes, 0))} · original quality
+                </p>
+                <p className="mono signal" style={{ marginTop: "0.55rem" }}>Ends {formatExpiry(result.expiresAt)}</p>
+              </div>
+              <span className="chat-arrow" aria-hidden="true">↗</span>
+            </a>
+            <p className="mono muted" style={{ marginTop: "0.6rem" }}>Tap the card to open the delivery.</p>
+          </motion.div>
+          <div className="og-links">
+            <a href={result.url} target="_blank" rel="noreferrer">Open link ↗</a>
+            <a href={ogUrl(result.link.slug)} target="_blank" rel="noreferrer">View preview image ↗</a>
+          </div>
+        </section>
 
-        <div className="og-links mt-3">
-          <a href={result.url} target="_blank" rel="noreferrer">
-            Open link <span aria-hidden="true">↗</span>
-          </a>
-          <a href={ogUrl(result.link.slug)} target="_blank" rel="noreferrer">
-            View preview image <span aria-hidden="true">↗</span>
-          </a>
-        </div>
-
-        <div className="mt-8">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted">Your link</p>
-          <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <section className="section">
+          <div className="section-head"><h2 className="h3">Your link</h2></div>
+          <div className="link-field">
+            <label className="field-label" htmlFor="kelpo-link">Copy and send</label>
             <input
-              className="field flex-1 font-mono text-sm"
+              id="kelpo-link"
+              className="field mono"
               readOnly
               value={result.url}
               onFocus={(event) => event.currentTarget.select()}
             />
-            <button className="primary-btn shrink-0" onClick={copyLink}>
-              {copied ? "Copied" : "Copy link"}
-            </button>
+            <button className="btn" onClick={() => void copyLink()}>{copied ? "Copied" : "Copy link"}</button>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs text-muted">
-            <a
-              className="underline underline-offset-2"
-              href={`https://wa.me/?text=${encodeURIComponent(`${result.link.title}\n${result.url}`)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Send on WhatsApp
-            </a>
-            <a
-              className="underline underline-offset-2"
-              href={`mailto:?subject=${encodeURIComponent(result.link.title)}&body=${encodeURIComponent(result.url)}`}
-            >
-              Send by email
-            </a>
+          <div className="og-links" style={{ marginTop: "1.25rem" }}>
+            <a href={`https://wa.me/?text=${encodeURIComponent(`${result.link.title}\n${result.url}`)}`} target="_blank" rel="noreferrer">Send on WhatsApp ↗</a>
+            <a href={`mailto:?subject=${encodeURIComponent(result.link.title)}&body=${encodeURIComponent(result.url)}`}>Send by email ↗</a>
             {typeof navigator.share === "function" && (
-              <button
-                className="underline underline-offset-2"
-                onClick={() => navigator.share({ title: result.link.title, url: result.url }).catch(() => {})}
-              >
-                Share
-              </button>
+              <a href="#" onClick={(event) => { event.preventDefault(); void navigator.share({ title: result.link.title, url: result.url }).catch(() => {}); }}>Share ↗</a>
             )}
           </div>
-        </div>
-
-        <p className="mt-8 border-t border-ink/15 pt-5 text-sm text-muted">
-          Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
-        </p>
-        {stats && (
-          <p className="mt-3 font-mono text-xs text-muted">
-            Opened {stats.opens} {stats.opens === 1 ? "time" : "times"} · {stats.downloads} original downloads · {stats.zips} ZIP downloads
+          <p className="mono muted" style={{ marginTop: "1.5rem" }}>
+            Link ends {formatExpiry(result.expiresAt)}. The files are deleted then.
           </p>
-        )}
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+          {stats && (
+            <p className="mono muted" style={{ marginTop: "0.6rem" }}>
+              Opened {stats.opens} {stats.opens === 1 ? "time" : "times"} · {stats.downloads} original downloads · {stats.zips} ZIP downloads
+            </p>
+          )}
+        </section>
+
+        {error && <p className="error-line">{error}</p>}
+
+        <div className="hero-actions" style={{ marginTop: "2.5rem" }}>
           <button className="text-btn" onClick={reset}>Create another delivery</button>
           <a className="text-btn" href="/dashboard">Save links to an account — optional</a>
         </div>
-        <footer className="mt-10 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+
+        <footer className="footer">
           <Credits />
           <LikeButton />
         </footer>
@@ -282,66 +327,75 @@ export default function CreatePage() {
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-xl px-5 py-8 sm:py-12">
-      <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
-        <div className="flex shrink-0 items-center gap-3">
-          <Seal />
-          <span className="font-display text-2xl">Kelpo</span>
-        </div>
-        <span className="hidden text-right font-mono text-[10px] uppercase leading-tight tracking-widest text-muted sm:block sm:text-xs">
-          Original quality, delivered
-        </span>
+    <main className="page wrap">
+      <header className="masthead">
+        <a className="brand" href="/"><Seal /><span className="brand-name">Kelpo</span></a>
+        <span className="masthead-meta">Original quality, delivered</span>
       </header>
 
-      <section className="settle-in mt-12">
-        <h1 className="font-display text-[2.6rem] leading-[1.03] tracking-tight sm:text-5xl lg:text-6xl">
-          Your work arrives
-          <br />
-          exactly as you made it.
-        </h1>
-        <p className="mt-5 max-w-md text-sm leading-relaxed text-muted">
-          Send finals through WhatsApp, Instagram or email. One link, every file, no compression.
-        </p>
-      </section>
+      <section className="hero" ref={heroRef}>
+        <div className="hero-copy">
+          <h1 className="display hero-title">
+            <span className="line"><span>Your work arrives</span></span>
+            <span className="line"><span><em>exactly</em> as you made it.</span></span>
+          </h1>
+          <p className="lede hero-lede">
+            Send finals through WhatsApp, Instagram or email. One link, every file, no compression.
+          </p>
+          <div className="hero-actions">
+            <button className="btn" onClick={() => document.getElementById("delivery-tray")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              Start a delivery
+            </button>
+            <a className="text-btn" href="/dashboard">Save links to an account ↗</a>
+          </div>
+        </div>
 
-      <section className="mt-8 grid grid-cols-1 gap-x-6 gap-y-3 border-y border-ink/15 py-4 sm:grid-cols-3" aria-label="How Kelpo works">
-        {[
-          ["01", "Pick your files", "Up to 15 originals."],
-          ["02", "Set an expiry", "24 hours, 7 or 30 days."],
-          ["03", "Send one link", "Works in any chat app."],
-        ].map(([number, title, detail]) => (
-          <div key={number} className="flex items-baseline gap-3">
-            <span className="font-mono text-xs text-signal">{number}</span>
-            <div>
-              <p className="text-sm font-medium">{title}</p>
-              <p className="font-mono text-[11px] text-muted">{detail}</p>
+        <div className="proof" ref={proofRef} aria-label="A compressed preview beside an original file">
+          <div className="proof-label">
+            <span className="mono">The difference, in one glance</span>
+            <span className="mono muted">01 / 02</span>
+          </div>
+          <div className="proof-grid">
+            <div className="proof-cell">
+              <div className="proof-band is-compressed"><span className="proof-tag">Compressed</span></div>
+              <p className="mono muted" style={{ marginTop: "0.6rem" }}>Soft. Capped. Blocked.</p>
+            </div>
+            <div className="proof-cell">
+              <div className="proof-band is-original">
+                <span className="proof-tag signal">Original</span>
+                <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><Seal size="sm" /></span>
+              </div>
+              <p className="mono muted" style={{ marginTop: "0.6rem" }}>Every byte, intact.</p>
             </div>
           </div>
-        ))}
-      </section>
-
-      <section className="mt-8" aria-label="Why Kelpo">
-        <div className="compare">
-          <div className="compare-item">
-            <div className="compare-visual is-compressed" aria-hidden="true" />
-            <p className="mt-3 text-sm font-medium">In a chat app</p>
-            <p className="font-mono text-[11px] text-muted">Compressed. Capped. Sometimes blocked.</p>
-          </div>
-          <div className="compare-item">
-            <div className="compare-visual is-original" aria-hidden="true">
-              <span className="seal seal-sm">
-                {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-medium">With Kelpo</p>
-            <p className="font-mono text-[11px] text-muted">Originals. Previewed before download.</p>
+          <div className="proof-foot">
+            <span>Previews are light.</span>
+            <span>Downloads are the real files.</span>
           </div>
         </div>
       </section>
 
-      <section className="mt-10">
+      <section className="section" aria-label="How Kelpo works">
+        <div className="section-head"><h2 className="h3">Three steps, one link.</h2></div>
+        <div className="steps">
+          {[
+            ["01", "Pick your files", "Up to 15 originals."],
+            ["02", "Set an expiry", "24 hours, 7 or 30 days."],
+            ["03", "Send one link", "Works in any chat app."],
+          ].map(([number, stepTitle, detail]) => (
+            <div className="step" key={number}>
+              <span className="step-index">{number}</span>
+              <p className="step-title">{stepTitle}</p>
+              <p className="mono muted">{detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section" id="delivery-tray">
+        <div className="section-head"><h2 className="h3">Your delivery tray.</h2></div>
         <div
-          className={`delivery-tray ${dragging ? "is-dragging" : ""}`}
+          className={`tray ${dragging ? "is-dragging" : ""}`}
           onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={(event) => {
@@ -352,15 +406,14 @@ export default function CreatePage() {
           onClick={() => inputRef.current?.click()}
           role="button"
           tabIndex={0}
+          aria-label="Choose files to deliver"
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") inputRef.current?.click();
           }}
         >
-          <div className="reg-mark mx-auto" aria-hidden="true" />
-          <p className="mt-4 font-display text-xl">Drop files here</p>
-          <p className="mt-1 font-mono text-xs text-muted">
-            Or tap to choose · JPG, PNG, WebP, GIF, PDF · up to 15 files, 25 MB each
-          </p>
+          <span className="reg-mark" aria-hidden="true" />
+          <p className="tray-title">Drop files here</p>
+          <p className="mono muted">Or tap to choose · JPG, PNG, WebP, GIF, PDF · up to 15 files, 25 MB each</p>
           <input
             ref={inputRef}
             className="hidden"
@@ -374,100 +427,136 @@ export default function CreatePage() {
           />
         </div>
 
-        {files.length > 0 && (
-          <div className="packing-list mt-4">
-            <div className="flex items-center justify-between font-mono text-xs text-muted">
-              <span>{files.length} {files.length === 1 ? "file" : "files"}</span>
-              <span>{formatBytes(totalBytes)}</span>
-            </div>
-            {files.map((item) => (
-              <div key={item.key} className="flex items-center justify-between gap-3 border-b border-ink/10 py-2.5">
-                <span className="min-w-0 flex-1 truncate text-sm">{item.file.name}</span>
-                <span className="shrink-0 font-mono text-xs text-muted">{formatBytes(item.file.size)}</span>
-                <button
-                  className="shrink-0 text-xs text-muted underline underline-offset-2"
-                  onClick={() => setFiles((current) => current.filter((entry) => entry.key !== item.key))}
-                >
-                  Remove
-                </button>
+        <AnimatePresence initial={false}>
+          {files.length > 0 && (
+            <motion.div
+              className="packing"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="packing-head mono muted">
+                <span>{files.length} {files.length === 1 ? "file" : "files"}</span>
+                <span className="num">{formatBytes(totalBytes)}</span>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-10 space-y-8">
-        <label className="block">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Title</span>
-          <input
-            className="field mt-2 font-display text-2xl"
-            placeholder="Brand refresh — final files"
-            value={title}
-            maxLength={120}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </label>
-        <label className="block">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">A note for your client</span>
-          <textarea
-            className="field mt-2 min-h-20 resize-y text-sm"
-            placeholder="Optional"
-            value={message}
-            maxLength={600}
-            onChange={(event) => setMessage(event.target.value)}
-          />
-        </label>
-
-        <fieldset>
-          <legend className="font-mono text-xs uppercase tracking-widest text-muted">Link expires after</legend>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {(["24h", "7d", "30d"] as Expiry[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`stamp-btn ${expiry === option ? "is-active" : ""}`}
-                onClick={() => setExpiry(option)}
-              >
-                {option === "24h" ? "24 hours" : option === "7d" ? "7 days" : "30 days"}
-              </button>
-            ))}
-          </div>
-          <p className="mt-2 font-mono text-xs text-muted">
-            Ends {formatExpiry(endsAt)}. We delete the files then.
-          </p>
-        </fieldset>
-
-        <fieldset>
-          <legend className="font-mono text-xs uppercase tracking-widest text-muted">Password</legend>
-          <label className="mt-3 flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={hasPassword}
-              onChange={(event) => setHasPassword(event.target.checked)}
-            />
-            Require a password
-          </label>
-          {hasPassword && (
-            <input
-              className="field mt-3 font-mono text-sm"
-              type="password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
+              <AnimatePresence initial={false}>
+                {files.map((item) => (
+                  <motion.div
+                    className="packing-row"
+                    key={item.key}
+                    layout
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.22 }}
+                  >
+                    <span className="packing-name">{item.file.name}</span>
+                    <span className="mono muted num">{formatBytes(item.file.size)}</span>
+                    <button
+                      className="packing-remove"
+                      onClick={() => setFiles((current) => current.filter((entry) => entry.key !== item.key))}
+                    >
+                      Remove
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
           )}
-        </fieldset>
+        </AnimatePresence>
       </section>
 
-      {error && <p className="mt-8 border-l-2 border-signal pl-3 text-sm text-signal">{error}</p>}
+      <section className="section">
+        <div className="section-head"><h2 className="h3">Set the terms.</h2></div>
+        <div className="form-row">
+          <label className="block">
+            <span className="field-label">Title</span>
+            <input
+              className="field field-display"
+              placeholder="Brand refresh — final files"
+              value={title}
+              maxLength={120}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="field-label">A note for your client</span>
+            <textarea
+              className="field"
+              style={{ minHeight: "5.5rem", resize: "vertical" }}
+              placeholder="Optional"
+              value={message}
+              maxLength={600}
+              onChange={(event) => setMessage(event.target.value)}
+            />
+          </label>
+        </div>
 
-      <button className="primary-btn mt-10 w-full" onClick={() => void seal()}>
+        <div className="form-row">
+          <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+            <legend className="field-label">Link expires after</legend>
+            <div className="stamps" style={{ marginTop: "0.9rem" }}>
+              {(["24h", "7d", "30d"] as Expiry[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`stamp ${expiry === option ? "is-active" : ""}`}
+                  onClick={() => setExpiry(option)}
+                >
+                  {option === "24h" ? "24 hours" : option === "7d" ? "7 days" : "30 days"}
+                  <small>{formatExpiry(Date.now() + LIFETIMES[option])}</small>
+                </button>
+              ))}
+            </div>
+            <p className="mono muted" style={{ marginTop: "0.8rem" }}>
+              Ends {formatExpiry(endsAt)}. We delete the files then.
+            </p>
+          </fieldset>
+
+          <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+            <legend className="field-label">Password</legend>
+            <label className="toggle" style={{ marginTop: "0.8rem" }}>
+              <input
+                type="checkbox"
+                checked={hasPassword}
+                onChange={(event) => setHasPassword(event.target.checked)}
+              />
+              <span>Require a password to open this link</span>
+            </label>
+            <AnimatePresence initial={false}>
+              {hasPassword && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <input
+                    className="field mono"
+                    style={{ marginTop: "1rem" }}
+                    type="password"
+                    placeholder="At least 6 characters"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </fieldset>
+        </div>
+      </section>
+
+      {error && <p className="error-line">{error}</p>}
+
+      <button className="btn btn-block" style={{ marginTop: "2.5rem" }} onClick={() => void seal()}>
         Seal &amp; create link
       </button>
-      <p className="mt-4 text-center font-mono text-xs text-muted">
+      <p className="mono muted" style={{ marginTop: "1rem", textAlign: "center" }}>
         No account. No app. No compression.
       </p>
-      <footer className="mt-12 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+
+      <footer className="footer">
         <Credits />
         <LikeButton />
       </footer>

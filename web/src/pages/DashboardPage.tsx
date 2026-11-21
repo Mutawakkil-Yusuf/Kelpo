@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { motion } from "motion/react";
 import Credits from "../components/Credits";
 import LikeButton from "../components/LikeButton";
 import Loading from "../components/Loading";
+import Seal from "../components/Seal";
 import { api, ApiError, type DashboardData } from "../lib/api";
 import { clearSession, getSession, setSession } from "../lib/auth";
 import { formatExpiry } from "../lib/format";
@@ -77,7 +79,7 @@ export default function DashboardPage() {
 
   if (!loaded) {
     return (
-      <main className="mx-auto min-h-dvh max-w-xl px-5 py-16">
+      <main className="page wrap" style={{ display: "grid", alignContent: "center" }}>
         <Loading label="Loading your links." detail="Getting views, expiry dates and notes." />
       </main>
     );
@@ -85,205 +87,157 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <main className="mx-auto min-h-dvh max-w-xl px-5 py-10 sm:py-14">
-        <header className="flex items-center justify-between border-b border-ink pb-4">
-          <a className="font-display text-2xl" href="/">Kelpo</a>
-          <a className="text-btn" href="/">New link ↗</a>
+      <main className="page wrap">
+        <header className="masthead">
+          <a className="brand" href="/"><Seal /><span className="brand-name">Kelpo</span></a>
+          <a className="masthead-meta" href="/">New link ↗</a>
         </header>
 
-        <section className="mt-14">
-          <span className="seal" aria-hidden="true">
-            {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
-          </span>
-          <h1 className="mt-8 font-display text-4xl tracking-tight sm:text-5xl">
+        <section className="section" style={{ borderTop: 0 }}>
+          <Seal size="lg" />
+          <h1 className="display" style={{ fontSize: "clamp(2.8rem, 6vw, 4.75rem)", marginTop: "2rem" }}>
             Keep your links in one place.
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+          <p className="lede" style={{ marginTop: "1.2rem" }}>
             An account is optional. Creating and sending a link never asks for one. Save an
             account only when you want history, revoke, extend and client notes.
           </p>
         </section>
 
-        <form className="mt-10 space-y-5" onSubmit={(event) => void submit(event)}>
-          <label className="block">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted">Email</span>
-            <input
-              className="field mt-2"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@studio.com"
-            />
-          </label>
-          <label className="block">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted">Password</span>
-            <input
-              className="field mt-2 font-mono text-sm"
-              type="password"
-              required
-              minLength={mode === "signup" ? 8 : 1}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
-            />
-          </label>
-          {error && <p className="border-l-2 border-signal pl-3 text-sm text-signal">{error}</p>}
-          <button className="primary-btn w-full" disabled={busy}>
-            {busy
-              ? mode === "signup" ? "Opening your account." : "Signing in."
-              : mode === "signup" ? "Create account" : "Sign in"}
+        <section className="section">
+          <div className="section-head"><h2 className="h3">Your account</h2></div>
+          <form onSubmit={(event) => void submit(event)} style={{ display: "grid", gap: "1.75rem", maxWidth: "34rem" }}>
+            <label className="block">
+              <span className="field-label">Email</span>
+              <input className="field" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@studio.com" />
+            </label>
+            <label className="block">
+              <span className="field-label">Password</span>
+              <input
+                className="field mono"
+                type="password"
+                required
+                minLength={mode === "signup" ? 8 : 1}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
+              />
+            </label>
+            {error && <p className="error-line">{error}</p>}
+            <button className="btn btn-block" disabled={busy}>
+              {busy
+                ? mode === "signup" ? "Opening your account." : "Signing in."
+                : mode === "signup" ? "Create account" : "Sign in"}
+            </button>
+          </form>
+          <button
+            className="text-btn"
+            style={{ marginTop: "1.25rem" }}
+            onClick={() => { setMode((current) => (current === "signup" ? "login" : "signup")); setError(""); }}
+          >
+            {mode === "signup" ? "Already have an account? Sign in" : "Need an account? Create one"}
           </button>
-        </form>
+        </section>
 
-        <button
-          className="text-btn mt-5"
-          onClick={() => {
-            setMode((current) => (current === "signup" ? "login" : "signup"));
-            setError("");
-          }}
-        >
-          {mode === "signup" ? "Already have an account? Sign in" : "Need an account? Create one"}
-        </button>
-
-        <footer className="mt-14 border-t border-ink/10 pt-4">
-          <Credits />
-        </footer>
-        <LikeButton />
+        <footer className="footer"><Credits /><LikeButton /></footer>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-3xl px-5 py-10 sm:py-14">
-      <header className="flex items-center justify-between gap-3 border-b border-ink pb-4">
-        <span className="font-display text-2xl">Kelpo</span>
-        <div className="flex items-center gap-5 font-mono text-xs text-muted">
-          <a className="underline underline-offset-2" href="/">New link ↗</a>
-          <button
-            className="underline underline-offset-2"
-            onClick={() => {
-              clearSession();
-              setData(null);
-            }}
-          >
-            Sign out
-          </button>
+    <main className="page wrap">
+      <header className="masthead">
+        <span className="brand"><Seal /><span className="brand-name">Kelpo</span></span>
+        <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
+          <a className="masthead-meta" href="/">New link ↗</a>
+          <button className="masthead-meta" onClick={() => { clearSession(); setData(null); }}>Sign out</button>
         </div>
       </header>
 
-      <section className="mt-10 flex items-end justify-between gap-4">
+      <section className="client-head" style={{ marginTop: "clamp(2.5rem, 8vh, 5rem)" }}>
         <div>
-          <h1 className="font-display text-4xl tracking-tight sm:text-5xl">Your links.</h1>
-          <p className="mt-2 font-mono text-xs text-muted">{data.account.email} · {data.account.plan}</p>
+          <h1 className="display" style={{ fontSize: "clamp(2.8rem, 6vw, 4.75rem)" }}>Your links.</h1>
+          <p className="mono muted" style={{ marginTop: "1rem" }}>{data.account.email} · {data.account.plan}</p>
         </div>
-        <span className="font-mono text-xs text-muted">{data.links.length} links</span>
+        <p className="mono">{data.links.length} {data.links.length === 1 ? "link" : "links"}</p>
       </section>
 
-      <section className="mt-10">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Your links</span>
-          <span className="h-px flex-1 bg-ink/15" />
-        </div>
+      <section className="section">
+        <div className="section-head"><h2 className="h3">The ledger</h2></div>
         {data.links.length === 0 ? (
-          <p className="mt-6 text-sm text-muted">
-            No saved deliveries yet. The links you create from now on will appear here.
-          </p>
+          <p className="lede">No saved deliveries yet. The links you create from now on will appear here.</p>
         ) : (
-          <div className="mt-5 divide-y divide-ink/10 border-y border-ink/15">
+          <div className="ledger">
             {data.links.map((link) => (
-              <article key={link.slug} className="py-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-display text-xl">{link.title}</p>
-                    <p className="mt-1 font-mono text-xs text-muted">
-                      {link.status} · opened {link.opens} times · {link.view_count} page loads · ends {formatExpiry(link.expires_at)}
-                    </p>
-                  </div>
-                  <a className="text-btn" href={`/p/${link.slug}`} target="_blank" rel="noreferrer">
-                    Open ↗
-                  </a>
+              <motion.article className="ledger-row" key={link.slug} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                <div>
+                  <p className="ledger-title">{link.title}</p>
+                  <p className="mono muted" style={{ marginTop: "0.5rem" }}>
+                    {link.status} · ends {formatExpiry(link.expires_at)}
+                  </p>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <button
-                    className="small-btn"
-                    onClick={() => void act(() => api.revoke(link.slug))}
-                    disabled={link.status === "disabled"}
-                  >
-                    Stop link
-                  </button>
-                  {(["24h", "7d", "30d"] as const).map((expiry) => (
-                    <button
-                      key={expiry}
-                      className="small-btn"
-                      onClick={() => void act(() => api.extend(link.slug, expiry))}
-                    >
-                      Add {expiry === "24h" ? "24 hours" : expiry === "7d" ? "7 days" : "30 days"}
+                <div className="mono muted num">
+                  <p>opened {link.opens} times</p>
+                  <p>{link.view_count} page loads</p>
+                </div>
+                <div>
+                  <div className="ledger-actions" style={{ justifyContent: "flex-end" }}>
+                    <a className="small-btn" href={`/p/${link.slug}`} target="_blank" rel="noreferrer">Open ↗</a>
+                    <button className="small-btn" onClick={() => void act(() => api.revoke(link.slug))} disabled={link.status === "disabled"}>
+                      Stop link
                     </button>
-                  ))}
+                  </div>
+                  <div className="ledger-actions" style={{ justifyContent: "flex-end", marginTop: "0.5rem" }}>
+                    {(["24h", "7d", "30d"] as const).map((expiry) => (
+                      <button key={expiry} className="small-btn" onClick={() => void act(() => api.extend(link.slug, expiry))}>
+                        +{expiry === "24h" ? "24h" : expiry === "7d" ? "7d" : "30d"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}
       </section>
 
-      <section className="mt-14">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Your brand</span>
-          <span className="h-px flex-1 bg-ink/15" />
-        </div>
-        <p className="mt-4 text-sm text-muted">
-          Your accent and logo appear on every delivery page you send from this account.
-        </p>
-        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
+      <section className="section">
+        <div className="section-head"><h2 className="h3">Stationery</h2></div>
+        <p className="lede">Your accent and logo appear on every delivery page you send from this account.</p>
+        <div className="form-row" style={{ alignItems: "end" }}>
           <label className="block">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted">Accent</span>
-            <input
-              className="color-input"
-              type="color"
-              value={brandColor}
-              onChange={(event) => setBrandColor(event.target.value)}
-            />
+            <span className="field-label">Accent</span>
+            <input className="color-input" style={{ display: "block", marginTop: "0.7rem" }} type="color" value={brandColor} onChange={(event) => setBrandColor(event.target.value)} />
           </label>
-          <label className="block flex-1">
-            <span className="font-mono text-xs uppercase tracking-widest text-muted">Logo URL</span>
-            <input
-              className="field mt-2 text-sm"
-              placeholder="https://…/logo.png"
-              value={brandLogo}
-              onChange={(event) => setBrandLogo(event.target.value)}
-            />
+          <label className="block">
+            <span className="field-label">Logo URL</span>
+            <input className="field mono" style={{ marginTop: "0.3rem" }} placeholder="https://…/logo.png" value={brandLogo} onChange={(event) => setBrandLogo(event.target.value)} />
           </label>
-          <button
-            className="small-btn"
-            onClick={() =>
-              void act(async () => {
-                await api.saveBrand({ accentColor: brandColor, logoUrl: brandLogo || null });
-                setBrandSaved(true);
-              })
-            }
-          >
-            {brandSaved ? "Saved" : "Save kit"}
-          </button>
         </div>
+        <button
+          className="btn"
+          style={{ marginTop: "1.5rem" }}
+          onClick={() => void act(async () => {
+            await api.saveBrand({ accentColor: brandColor, logoUrl: brandLogo || null });
+            setBrandSaved(true);
+          })}
+        >
+          {brandSaved ? "Saved" : "Save kit"}
+        </button>
       </section>
 
-      <section className="mt-14">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-xs uppercase tracking-widest text-muted">Plans</span>
-          <span className="h-px flex-1 bg-ink/15" />
-        </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <section className="section">
+        <div className="section-head"><h2 className="h3">Plans</h2></div>
+        <div className="plan-grid">
           <div className="plan-card">
-            <p className="font-display text-2xl">Free</p>
-            <p className="mt-2 text-sm text-muted">15 files · 25 MB each · 30 days · expiry links</p>
+            <p className="h3">Free</p>
+            <p className="mono muted" style={{ marginTop: "0.8rem" }}>15 files · 25 MB each · 30 days · expiry links</p>
           </div>
           <div className="plan-card plan-pro">
-            <p className="font-display text-2xl">Studio</p>
-            <p className="mt-2 text-sm text-muted">Larger files · longer expiry · your domain · client pins</p>
+            <p className="h3">Studio</p>
+            <p className="mono muted" style={{ marginTop: "0.8rem" }}>Larger files · longer expiry · your domain · client pins</p>
             <form
-              className="mt-5 flex gap-2"
+              style={{ display: "flex", gap: "0.6rem", marginTop: "1.5rem" }}
               onSubmit={(event) => {
                 event.preventDefault();
                 void act(async () => {
@@ -292,28 +246,16 @@ export default function DashboardPage() {
                 });
               }}
             >
-              <input
-                className="field flex-1 text-sm"
-                type="email"
-                required
-                placeholder="you@studio.com"
-                value={waitlistEmail}
-                onChange={(event) => setWaitlistEmail(event.target.value)}
-              />
-              <button className="small-btn" type="submit">
-                {waitlistDone ? "Added" : "Notify me"}
-              </button>
+              <input className="field mono" type="email" required placeholder="you@studio.com" value={waitlistEmail} onChange={(event) => setWaitlistEmail(event.target.value)} />
+              <button className="btn" type="submit">{waitlistDone ? "Added" : "Notify me"}</button>
             </form>
           </div>
         </div>
       </section>
 
-      {error && <p className="mt-8 border-l-2 border-signal pl-3 text-sm text-signal">{error}</p>}
+      {error && <p className="error-line">{error}</p>}
 
-      <footer className="mt-14 flex flex-col gap-4 border-t border-ink/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <Credits />
-        <LikeButton />
-      </footer>
+      <footer className="footer"><Credits /><LikeButton /></footer>
     </main>
   );
 }

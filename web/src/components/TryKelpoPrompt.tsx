@@ -1,4 +1,6 @@
+import { AnimatePresence, motion } from "motion/react";
 import Credits from "./Credits";
+import Seal from "./Seal";
 
 /** Shown once, when a recipient opens their first file. Bottom sheet on a phone,
  *  centred card on a laptop. Stays out of the way of the files. */
@@ -9,40 +11,43 @@ export default function TryKelpoPrompt({
   open: boolean;
   onClose: () => void;
 }) {
-  if (!open) return null;
-
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <section
-        className="try-sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Try Kelpo"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button className="sheet-close" onClick={onClose} aria-label="Close">
-          ×
-        </button>
-        <span className="seal" aria-hidden="true">
-          {Array.from({ length: 9 }, (_, i) => <i key={i} />)}
-        </span>
-        <h2 className="mt-6 font-display text-3xl leading-tight tracking-tight sm:text-4xl">
-          Sent with Kelpo.
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted">
-          Your files arrived as originals — no compression, no account, no app. Send your
-          own work the same way.
-        </p>
-        <a className="primary-btn mt-7 block text-center" href="/">
-          Create a link
-        </a>
-        <button className="text-btn mt-4" onClick={onClose}>
-          Not now
-        </button>
-        <div className="mt-7 border-t border-ink/10 pt-4">
-          <Credits />
-        </div>
-      </section>
-    </div>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="sheet-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={onClose}
+        >
+          <motion.section
+            className="try-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Try Kelpo"
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button className="sheet-close" onClick={onClose} aria-label="Close">×</button>
+            <Seal />
+            <h2 className="h3" style={{ marginTop: "1.5rem" }}>Sent with Kelpo.</h2>
+            <p className="lede" style={{ marginTop: "0.8rem" }}>
+              Your files arrived as originals — no compression, no account, no app. Send your
+              own work the same way.
+            </p>
+            <a className="btn btn-block" style={{ marginTop: "2rem" }} href="/">Create a link</a>
+            <button className="text-btn" style={{ marginTop: "1rem" }} onClick={onClose}>Not now</button>
+            <div style={{ marginTop: "2rem", borderTop: "1px solid var(--color-ink)", paddingTop: "1rem" }}>
+              <Credits />
+            </div>
+          </motion.section>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
