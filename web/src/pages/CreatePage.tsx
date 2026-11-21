@@ -1,7 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import Credits from "../components/Credits";
 import LikeButton from "../components/LikeButton";
@@ -11,8 +10,6 @@ import { formatBytes, formatExpiry, ogUrl } from "../lib/format";
 import { prefersReducedMotion } from "../lib/motion";
 import { setOwnerToken } from "../lib/session";
 import { makeOgCard, makeThumbnail } from "../lib/thumbnails";
-
-gsap.registerPlugin(ScrollTrigger);
 
 type Expiry = "24h" | "7d" | "30d";
 type Stage = "editing" | "uploading" | "done";
@@ -46,7 +43,6 @@ export default function CreatePage() {
   const [stats, setStats] = useState<{ opens: number; downloads: number; zips: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const proofRef = useRef<HTMLDivElement>(null);
 
   const totalBytes = useMemo(() => files.reduce((sum, item) => sum + item.file.size, 0), [files]);
   const endsAt = useMemo(() => Date.now() + LIFETIMES[expiry], [expiry]);
@@ -74,30 +70,8 @@ export default function CreatePage() {
         .from("[data-seal]", { scale: 1.18, rotate: -4, opacity: 0, duration: 0.34 })
         .from(".hero-title .line > span", { yPercent: 112, opacity: 0, duration: 0.75, stagger: 0.09 }, "-=0.08")
         .from(".hero-lede", { y: 14, opacity: 0, duration: 0.5 }, "-=0.42")
-        .from(".hero-actions > *", { y: 10, opacity: 0, duration: 0.4, stagger: 0.07 }, "-=0.34")
-        .from(".proof", { y: 24, opacity: 0, duration: 0.6 }, "-=0.5");
+        .from(".hero-actions > *", { y: 10, opacity: 0, duration: 0.4, stagger: 0.07 }, "-=0.34");
     }, heroRef);
-    return () => context.revert();
-  }, [stage]);
-
-  useEffect(() => {
-    if (stage !== "editing" || prefersReducedMotion() || !proofRef.current) return;
-    const context = gsap.context(() => {
-      gsap.fromTo(
-        proofRef.current,
-        { "--degrade": 0 },
-        {
-          "--degrade": 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: proofRef.current,
-            start: "top 82%",
-            end: "bottom 25%",
-            scrub: 0.5,
-          },
-        },
-      );
-    });
     return () => context.revert();
   }, [stage]);
 
@@ -292,7 +266,19 @@ export default function CreatePage() {
               value={result.url}
               onFocus={(event) => event.currentTarget.select()}
             />
-            <button className="btn" onClick={() => void copyLink()}>{copied ? "Copied" : "Copy link"}</button>
+            <button className="btn" onClick={() => void copyLink()}>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={copied ? "copied" : "copy"}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {copied ? "Copied" : "Copy link"}
+                </motion.span>
+              </AnimatePresence>
+            </button>
           </div>
           <div className="og-links" style={{ marginTop: "1.25rem" }}>
             <a href={`https://wa.me/?text=${encodeURIComponent(`${result.link.title}\n${result.url}`)}`} target="_blank" rel="noreferrer">Send on WhatsApp ↗</a>
@@ -336,11 +322,12 @@ export default function CreatePage() {
       <section className="hero" ref={heroRef}>
         <div className="hero-copy">
           <h1 className="display hero-title">
-            <span className="line"><span>Your work arrives</span></span>
-            <span className="line"><span><em>exactly</em> as you made it.</span></span>
+            <span className="line"><span>Send the originals.</span></span>
+            <span className="line"><span>Uncompressed.</span></span>
           </h1>
           <p className="lede hero-lede">
-            Send finals through WhatsApp, Instagram or email. One link, every file, no compression.
+            One link for up to 15 files. It works in WhatsApp, Instagram and email — and the
+            files delete themselves when the link ends.
           </p>
           <div className="hero-actions">
             <button className="btn" onClick={() => document.getElementById("delivery-tray")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
@@ -348,31 +335,61 @@ export default function CreatePage() {
             </button>
             <a className="text-btn" href="/dashboard">Save links to an account ↗</a>
           </div>
+          <p className="assurance">No account · No app · No compression</p>
         </div>
 
-        <div className="proof" ref={proofRef} aria-label="A compressed preview beside an original file">
-          <div className="proof-label">
-            <span className="mono">The difference, in one glance</span>
-            <span className="mono muted">01 / 02</span>
+        <motion.div
+          className="desk-card"
+          aria-label="A Kelpo delivery link in a chat message and the originals it opens"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.15 }}
+        >
+          <div className="desk-card-head">
+            <span className="mono">Delivery card · WhatsApp</span>
+            <Seal size="sm" className="animate-seal" />
           </div>
-          <div className="proof-grid">
-            <div className="proof-cell">
-              <div className="proof-band is-compressed"><span className="proof-tag">Compressed</span></div>
-              <p className="mono muted" style={{ marginTop: "0.6rem" }}>Soft. Capped. Blocked.</p>
+          <div className="desk-card-body">
+            <div className="desk-channel">
+              <span className="reg-mark" aria-hidden="true" />
+              <span className="desk-channel-name">Kelpo</span>
+              <span className="mono muted">today, 09:41</span>
             </div>
-            <div className="proof-cell">
-              <div className="proof-band is-original">
-                <span className="proof-tag signal">Original</span>
-                <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}><Seal size="sm" /></span>
+            <div className="desk-bubble">
+              <div className="desk-file">
+                <span className="desk-thumb" aria-hidden="true" />
+                <div style={{ minWidth: 0 }}>
+                  <p className="desk-file-title">Brand refresh — final files</p>
+                  <p className="mono muted desk-file-meta">6 files · 42 MB · original quality</p>
+                  <p className="mono signal desk-file-meta">Ends 25 Nov, 08:12</p>
+                </div>
+                <span className="chat-arrow" aria-hidden="true">↗</span>
               </div>
-              <p className="mono muted" style={{ marginTop: "0.6rem" }}>Every byte, intact.</p>
+              <div className="desk-open"><span aria-hidden="true" /> Opens to the originals</div>
             </div>
           </div>
-          <div className="proof-foot">
-            <span>Previews are light.</span>
-            <span>Downloads are the real files.</span>
+          <div className="desk-manifest">
+            <div className="mono muted" style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem" }}>
+              <span>Original files</span><span>3 of 6</span>
+            </div>
+            {[
+              ["cover-final.png", "8.0 MB"],
+              ["packaging-front.png", "5.9 MB"],
+              ["social-1.jpg", "3.0 MB"],
+            ].map(([name, size], index) => (
+              <motion.div
+                className="desk-manifest-row"
+                key={name}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.45 + index * 0.09 }}
+              >
+                <span className="mono">{name}</span>
+                <span className="desk-original">{size}</span>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <section className="section" aria-label="How Kelpo works">
@@ -504,7 +521,14 @@ export default function CreatePage() {
                   className={`stamp ${expiry === option ? "is-active" : ""}`}
                   onClick={() => setExpiry(option)}
                 >
-                  {option === "24h" ? "24 hours" : option === "7d" ? "7 days" : "30 days"}
+                  {expiry === option && (
+                    <motion.span
+                      className="stamp-active-bg"
+                      layoutId="stamp-active"
+                      transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                    />
+                  )}
+                  <span>{option === "24h" ? "24 hours" : option === "7d" ? "7 days" : "30 days"}</span>
                   <small>{formatExpiry(Date.now() + LIFETIMES[option])}</small>
                 </button>
               ))}

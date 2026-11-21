@@ -1,88 +1,70 @@
 # Kelpo — design direction
 
-The product is not "file storage". It is **a delivery wrapper that protects original
-quality in transit**. Every design decision should say that, on a phone, in two seconds.
+Kelpo is a delivery wrapper that protects original quality in transit. Every screen
+must say that, on a phone, in two seconds. The world is **Courier desk**: a working
+desk, not a mood board.
 
-The visual world is **The proof sheet**: studio paperwork that has been ruled, stamped
-and sent. Nothing floats, nothing glows, nothing is a rounded SaaS card.
+## Product truth
 
-## What must be communicated
-
-| Product truth | Design device |
+| Truth | Device |
 | --- | --- |
-| Originals are not compressed | A visible pressed seal; crisp halftone, no soft gradients; a compressed-vs-original proof strip on the first screen |
-| It expires | A draining mono ring beside an exact date and a ticking mono clock, never hidden in settings |
-| It passes through chat apps where attachments fail | The share result is shown as a chat message with a rich link card, not a URL in a text box |
-| It is for client delivery by creatives | Contact-sheet language: numbered frames, hairline rules, packing slips, tabular measurements |
-| Clients are non-technical, on mobile data | One obvious primary action; light previews; downloads explicitly "the originals" |
+| Originals are not compressed | The words "Send the originals. No compression." in the first viewport; a delivery card that opens to a manifest of untouched files |
+| It expires | A draining ring beside an exact date and a mono countdown |
+| It works in chat apps where attachments fail | The result is shown as a chat message with a rich link card, never a bare URL |
+| It is for creatives delivering to clients | Contact sheets, packing slips, measured file sizes, tabular counts |
+| Clients are on mobile data | One obvious primary action; light previews; downloads labelled "the originals" |
 
-## Visual language
+## Colors
 
-**Paper, ink, one signal colour, and a dark proof room.** No purple gradient, no glass,
-no dashboard chrome.
-
-- Paper `#F4F1EA` — the main surface, feels like a delivery envelope
-- Paper 2 `#E9E4D8`, paper 3 `#DCD5C6` — tinted surfaces and proof panels
-- Ink `#141414` — text, hairline rules, the dark-room viewer (`#121211`)
-- Signal `#FF4D00` — a *field*, not a hairline: the seal, primary buttons, active stamps
-- Muted `#6B665E` — metadata and mono measurements
+- Ground `#EDEEEA`, surface `#F7F8F5`, surface 2 `#E2E4DE`, line `#C9CCC5`
+- Ink `#101211` — text, rules, primary actions and the dark viewer (`#101211`)
+- Muted `#5E635E` — metadata, secondary copy
+- Signal `#FF4D00` — **status only**: the pressed seal, expiry ring, active stamp,
+  the "original" marker and hover feedback. Never a decorative accent or a field.
 - Forest `#14382E` — success states only
 
-**Type:** editorial contrast. Display is **Instrument Serif**, self-hosted from
-`web/public/fonts`, used at 3–6rem with tight tracking and an italic cut for emphasis.
-UI is the system sans. **All measurements, dates, file sizes and statuses are mono**
-with tabular numerals — precision is the opposite of "compressed".
+## Typography
 
-**Composition:** equal left and right edges on a 74rem max wrap. Asymmetric first
-screen (copy left, proof right), hairline grids instead of cards, registration marks at
-the proof's corners, generous vertical rhythm with more space above a heading than
-below. Section headings are display type led by a short signal rule, never by a kicker.
+One face: **Archivo**, self-hosted at `web/public/fonts/archivo-latin.woff2` (variable
+weight 100–900). Display 600/700 with -0.035em to -0.045em tracking; UI 400/500;
+**mono only for real data** — sizes, dates, counts, statuses. No serif, no italics,
+no decorative tracked labels above headings. Headings start at the grid edge with no
+dash or kicker in front of them.
 
-**Native surfaces are designed too:** selection, caret, focus rings, scrollbars and
-underline offsets use the palette.
+## Components
 
-## Motion — authored, not scattered
+- Pressed seal: 3×3 halftone square with a notched corner in signal orange; used as
+  mark, favicon, loader and success stamp.
+- Desk card: a chat bubble containing the delivery card, a connector labelled "opens
+  to the originals", and a ruled manifest of original files. This is the hero visual.
+- Buttons: ink field with light text; hover becomes signal; press steps down. Signal
+  is never the default button fill.
+- Fields: hairline underline, signal on focus. Expiry choices are three equal stamps
+  with the exact end date on each; the selected one slides across on a shared layout.
+- Contact sheet: numbered frames on a one-pixel ink grid; originals are always named.
+- Ledger: ruled rows with tabular counts, never a card grid.
 
-One entrance timeline on the first screen (seal press → headline lines rise → lede →
-actions → proof), and one scroll-scrubbed degradation of the compressed half of the
-proof strip. React state transitions use Motion: packing-slip rows, the password field,
-the result card, the contact sheet and the fullscreen viewer. Lenis smooths the
-create page on capable devices.
+## Motion
 
-| Moment | Motion | Meaning |
-| --- | --- | --- |
-| First load | Seal presses, type lines rise from a clip, proof settles | A delivery being stamped and laid out |
-| Proof strip | Compressed half blurs and desaturates as it scrolls | What a chat app does to the file |
-| Contact sheet | Frames deal in with a short stagger | A proof sheet being laid out |
-| Seal / create | The button and result card press and deal in | A physical seal, not a "submit" |
-| Viewer | Dark room opens over the paper page | Stepping into the proof room |
-| Expiry ring | A conic ring drains clockwise over the link's life | Its life is literally running out |
-
-All motion is short (120–450 ms), eased mechanically, and fully disabled under
-`prefers-reduced-motion`. Three.js is deliberately unused: a delivery tool has no
-genuine 3D need.
-
-## Brand mark
-
-A **pressed seal**: a square with a 3×3 halftone grid and a notched corner, stamped in
-signal orange. It is the favicon, the OG stamp, the loading state and the success
-animation.
+One authored entrance on the first screen (seal presses, headline lines rise, lede
+and actions follow; the desk card and its manifest rows deal in). State motion only:
+the expiry stamp selection slides, packing-slip rows add and remove, the password
+field opens, the result card arrives, the contact sheet staggers, the viewer opens
+over the page, and the copy label swaps. The expiry ring drains for the link's life.
+All motion is short (120–550 ms), mechanical, and fully disabled under
+`prefers-reduced-motion` via `MotionConfig reducedMotion="user"` and GSAP guards.
+Three.js is intentionally absent — a delivery tool has no genuine 3D need.
 
 ## Surfaces
 
-- **Create** — hero with the live proof strip; three-step rule; delivery tray with a
-  mono packing slip; expiry stamps showing exact dates; seal to create; result shown
-  as a chat card.
-- **Client** — title and message in editorial type with the expiry ring; a numbered
-  contact sheet; persistent "Download all originals (.zip)"; dark fullscreen viewer
-  with swipe/keyboard navigation, notes and "Download original".
-- **Account** — the ledger: ruled rows with tabular view counts, extend/stop controls,
-  a stationery (brand kit) panel, and plans. No card grid, no avatars, no sidebars.
+**Create:** product statement and live desk card; three-step rule; delivery tray and
+packing slip; exact expiry stamps; seal to create; result as a chat card with copy and
+share actions. **Client:** title and expiry; contact sheet; persistent ZIP download;
+dark fullscreen viewer with notes. **Account:** the ledger, a stationery panel and
+plans, all on the same grid.
 
-## Anti-patterns (avoid)
+## Anti-patterns
 
-- Generic gradients, glassmorphism, rounded cards with soft shadows
-- Kicker/eyebrow labels above headings; decorative section numbers
-- Dashboard chrome, team language, invented accounts for recipients
-- Burying expiry or hiding that downloads are original quality
-- Animation for its own sake; heavy web fonts that slow mobile data
+Warm cream + serif + orange editorial templates, dashes or eyebrows before headings,
+gradients, glass, rounded cards with soft shadows, dashboard chrome, animation that
+does not explain the product.
